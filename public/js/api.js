@@ -3,10 +3,15 @@ const API_URL = 'https://dope-tone-api.dopetone701.workers.dev';
 const R2_PUBLIC = 'https://pub-60c4e7268904a31a890e52771845a014.r2.dev';
 
 // ===== EXISTING: GET BEATS =====
+// ===== EXISTING: GET BEATS - WITH TIMEOUT =====
 export async function getBeats() {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  
   try {
-    const res = await fetch(`${API_URL}/beats`);
-    if (!res.ok) throw new Error('Failed to fetch beats');
+    const res = await fetch(`${API_URL}/beats`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
    
     const beats = await res.json();
    
@@ -33,10 +38,12 @@ export async function getBeats() {
       created_at: b.created_at
     }));
   } catch (err) {
+    clearTimeout(timeoutId);
     console.error('getBeats error:', err);
-    return [];
+    return []; // Return empty array so page renders
   }
 }
+
 
 // ===== EXISTING: UPLOAD BEAT =====
 export async function uploadBeat({ title, genre, bpm, price, audioFile, coverFile, projectFile }) {
