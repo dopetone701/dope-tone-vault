@@ -1,11 +1,11 @@
 // api.js - Cloudflare D1 + R2 ONLY
-const API_URL = 'https://api.dopetonevault.com/api/beats'
+const API_URL = 'https://api.dopetonevault.com';
 const R2_PUBLIC = 'https://pub-60c4e7268904a31a890e52771845a014.r2.dev';
 
 // ===== EXISTING: GET BEATS =====
 export async function getBeats() {
   try {
-    const res = await fetch(`${API_URL}/beats`);
+    const res = await fetch(`${API_URL}/api/beats`);
     if (!res.ok) throw new Error('Failed to fetch beats');
    
     const beats = await res.json();
@@ -50,7 +50,7 @@ export async function uploadBeat({ title, genre, bpm, price, audioFile, coverFil
   if (coverFile) formData.append('cover', coverFile);
   if (projectFile) formData.append('project', projectFile);
 
-  const res = await fetch(`${API_URL}/upload`, {
+  const res = await fetch(`${API_URL}/api/upload`, {
     method: 'POST',
     body: formData
   });
@@ -110,8 +110,8 @@ export async function trackBeatPlay(beatId) {
     const res = await fetch(`${API_URL}/api/stats/play`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ 
-        beat_id: beatId, 
+      body: JSON.stringify({
+        beat_id: beatId,
         user_id: window.Auth?.user?.id || 'anonymous',
         timestamp: Date.now()
       })
@@ -127,11 +127,11 @@ export async function trackBeatPlay(beatId) {
 export async function trackBeatLike(beatId, isLiked) {
   try {
     const res = await fetch(`${API_URL}/api/stats/like`, {
-      method: 'POST', 
+      method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ 
-        beat_id: beatId, 
-        liked: isLiked, 
+      body: JSON.stringify({
+        beat_id: beatId,
+        liked: isLiked,
         user_id: window.Auth?.user?.id || 'anonymous',
         timestamp: Date.now()
       })
@@ -148,9 +148,9 @@ export async function trackBeatDownload(beatId) {
   try {
     const res = await fetch(`${API_URL}/api/stats/download`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'}, 
-      body: JSON.stringify({ 
-        beat_id: beatId, 
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        beat_id: beatId,
         user_id: window.Auth?.user?.id || 'anonymous',
         timestamp: Date.now()
       })

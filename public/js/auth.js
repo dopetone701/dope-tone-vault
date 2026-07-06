@@ -3,7 +3,7 @@
 // ========================================
 
 const ADMIN_EMAIL = 'dopetone701@gmail.com';
-const API_URL = 'https://dope-tone-api.dopetone701.workers.dev';
+const API_URL = 'https://api.dopetonevault.com';
 
 class AuthManager {
   constructor() {
@@ -46,7 +46,7 @@ class AuthManager {
 
   async saveUserDataToCloud() {
     if (!this.user) return;
-    
+   
     const userId = this.user.id;
     const data = {
       user_id: userId,
@@ -73,82 +73,52 @@ class AuthManager {
   }
 
   async loadUserDataFromCloud() {
-  if (!this.user) {
-    console.log('❌ loadUserData: No user');
-    return;
-  }
-  
-  const userId = this.user.id;
-  console.log('🔄 Loading from D1 for:', userId);
-
-  try {
-    const res = await fetch(`${API_URL}/api/user/${userId}/data`);
-    const cloudData = await res.json();
-    
-    console.log('📦 D1 Response:', cloudData);
-    console.log('🖼️ Avatar in D1:', cloudData.avatar);
-
-    if (cloudData) {
-      this.setUserStorage('dopetone_cart', JSON.stringify(cloudData.cart || []));
-      this.setUserStorage('dopetone_playlists', JSON.stringify(cloudData.playlists || []));
-      this.setUserStorage('dopetone_liked_beats', JSON.stringify(cloudData.likes || []));
-      this.setUserStorage('dopetone_licences', JSON.stringify(cloudData.licences || {}));
-
-      if (cloudData.avatar) {
-        console.log('✅ Setting avatar from D1:', cloudData.avatar);
-        this.user.avatar = cloudData.avatar;
-        this.avatarData = cloudData.avatar;
-        localStorage.setItem('dopetone_user', JSON.stringify(this.user));
-        console.log('💾 Saved to localStorage');
-      } else {
-        console.log('⚠️ No avatar in D1 data');
-      }
+    if (!this.user) {
+      console.log('❌ loadUserData: No user');
+      return;
     }
-  } catch (e) {
-    console.error('❌ Cloud load failed:', e);
-    this.migrateToUserStorage();
+   
+    const userId = this.user.id;
+    console.log('🔄 Loading from D1 for:', userId);
+
+    try {
+      const res = await fetch(`${API_URL}/api/user/${userId}/data`);
+      const cloudData = await res.json();
+     
+      console.log('📦 D1 Response:', cloudData);
+      console.log('🖼️ Avatar in D1:', cloudData.avatar);
+
+      if (cloudData) {
+        this.setUserStorage('dopetone_cart', JSON.stringify(cloudData.cart || []));
+        this.setUserStorage('dopetone_playlists', JSON.stringify(cloudData.playlists || []));
+        this.setUserStorage('dopetone_liked_beats', JSON.stringify(cloudData.likes || []));
+        this.setUserStorage('dopetone_licences', JSON.stringify(cloudData.licences || {}));
+
+        if (cloudData.avatar) {
+          console.log('✅ Setting avatar from D1:', cloudData.avatar);
+          this.user.avatar = cloudData.avatar;
+          this.avatarData = cloudData.avatar;
+          localStorage.setItem('dopetone_user', JSON.stringify(this.user));
+          console.log('💾 Saved to localStorage');
+        } else {
+          console.log('⚠️ No avatar in D1 data');
+        }
+      }
+    } catch (e) {
+      console.error('❌ Cloud load failed:', e);
+      this.migrateToUserStorage();
+    }
   }
-}
-
-async handleSubmit() {
-  // ... keep everything before the try ...
-  
-  try {
-    // ... existing code ...
-    
-    this.user = data.user;
-    console.log('👤 User from auth:', this.user);
-    localStorage.setItem('dopetone_user', JSON.stringify(this.user));
-    localStorage.setItem('dopetone_user_id', this.user.id);
-
-    console.log('⏳ Loading D1 data...');
-    await this.loadUserDataFromCloud();
-    console.log('✅ D1 loaded, user now:', this.user);
-    
-    this.syncUI();
-    console.log('🎨 UI synced, avatar should be:', this.user.avatar);
-    
-    this.showToast(`Welcome ${this.user.username}`);
-    this.closeModal();
-    
-    // REMOVE the reload - it's hiding the bug
-    // setTimeout(() => { window.location.reload(); }, 500);
-
-  } catch (err) {
-    // ... rest ...
-  }
-}
-
 
   migrateToUserStorage() {
     if (!this.user) return;
     const userId = this.user.id;
 
     const keys = ['dopetone_cart', 'dopetone_playlists', 'dopetone_liked_beats', 'dopetone_licences'];
-    
+   
     keys.forEach(key => {
       const old = localStorage.getItem(key);
-      if (old && !localStorage.getItem(`${key}_${userId}`)) {
+      if (old &&!localStorage.getItem(`${key}_${userId}`)) {
         localStorage.setItem(`${key}_${userId}`, old);
       }
     });
@@ -258,8 +228,8 @@ async handleSubmit() {
 
       document.addEventListener('click', (e) => {
         if (this.els.accountPanel?.classList.contains('active') &&
-            !e.target.closest('#accountPanel') &&
-            !e.target.closest('#accountBtn')) {
+           !e.target.closest('#accountPanel') &&
+           !e.target.closest('#accountBtn')) {
           this.closeAccountPanel();
         }
       });
@@ -267,9 +237,9 @@ async handleSubmit() {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') this.syncUI();
       });
-      
+     
       window.addEventListener('pageshow', () => this.syncUI());
-      
+     
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           this.closeModal();
@@ -279,7 +249,7 @@ async handleSubmit() {
       });
 
       window.addEventListener('cartUpdated', () => this.updateCartCount());
-      
+     
       window.addEventListener('storage', (e) => {
         if (e.key?.includes('dopetone_cart')) this.updateCartCount();
       });
@@ -302,7 +272,7 @@ async handleSubmit() {
     const playlists = JSON.parse(this.getUserStorage('dopetone_playlists'));
     const likedPlaylist = playlists.find(p => p.isLiked || p.type === 'liked');
    
-    if (!likedPlaylist || !likedPlaylist.beats || likedPlaylist.beats.length === 0) {
+    if (!likedPlaylist ||!likedPlaylist.beats || likedPlaylist.beats.length === 0) {
       btn.classList.add('shake');
       setTimeout(() => btn.classList.remove('shake'), 500);
       this.showToast('No liked tracks yet');
@@ -328,23 +298,24 @@ async handleSubmit() {
   }
 
   toggleMode() {
-    this.isSignup = !this.isSignup;
+    this.isSignup =!this.isSignup;
     this.updateModalUI();
     this.clearError();
   }
 
   updateModalUI() {
     if (!this.els.authTitle) return;
-    this.els.authTitle.textContent = this.isSignup ? 'Create Account' : 'Welcome Back';
-    this.els.authSubtitle.textContent = this.isSignup ? 'Join the arsenal today' : 'Login to access your arsenal';
-    this.els.authPassword.autocomplete = this.isSignup ? 'new-password' : 'current-password';
-    this.els.usernameGroup.style.display = this.isSignup ? 'block' : 'none';
-    this.els.signupAvatarWrap.style.display = this.isSignup ? 'flex' : 'none';
-    this.els.switchAuthText.textContent = this.isSignup ? 'Already have an account?' : "Don't have an account?";
-    this.els.switchAuthBtn.textContent = this.isSignup ? 'Login' : 'Sign Up';
-    this.els.authBox?.setAttribute('data-mode', this.isSignup ? 'signup' : 'login');
+    this.els.authTitle.textContent = this.isSignup? 'Create Account' : 'Welcome Back';
+    this.els.authSubtitle.textContent = this.isSignup? 'Join the arsenal today' : 'Login to access your arsenal';
+    this.els.authPassword.autocomplete = this.isSignup? 'new-password' : 'current-password';
+    this.els.usernameGroup.style.display = this.isSignup? 'block' : 'none';
+    this.els.signupAvatarWrap.style.display = this.isSignup? 'flex' : 'none';
+    this.els.switchAuthText.textContent = this.isSignup? 'Already have an account?' : "Don't have an account?";
+    this.els.switchAuthBtn.textContent = this.isSignup? 'Login' : 'Sign Up';
+    this.els.authBox?.setAttribute('data-mode', this.isSignup? 'signup' : 'login');
   }
- async handleSubmit() {
+
+  async handleSubmit() {
     const username = this.els.authUsername.value.trim();
     const email = this.els.authEmail.value.trim();
     const password = this.els.authPassword.value.trim();
@@ -357,7 +328,6 @@ async handleSubmit() {
     this.els.authSubmit.textContent = 'Please wait...';
 
     try {
-      // Save current user data before switching
       if (this.user) {
         await this.saveUserDataToCloud();
       }
@@ -377,27 +347,24 @@ async handleSubmit() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Auth failed');
 
-      // Set new user
       this.user = data.user;
+      console.log('👤 User from auth:', this.user);
       localStorage.setItem('dopetone_user', JSON.stringify(this.user));
       localStorage.setItem('dopetone_user_id', this.user.id);
 
-      // Load user's data from cloud
+      console.log('⏳ Loading D1 data...');
       await this.loadUserDataFromCloud();
-this.syncUI(); // Force UI update AFTER D1 loads
-this.showToast(`Welcome ${this.user.username}`);
-
-      this.closeModal();
+      console.log('✅ D1 loaded, user now:', this.user);
+     
       this.syncUI();
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      console.log('🎨 UI synced, avatar should be:', this.user.avatar);
+     
+      this.showToast(`Welcome ${this.user.username}`);
+      this.closeModal();
 
     } catch (err) {
       console.log('API failed, using local:', err);
 
-      // Fallback to local storage
       const userData = {
         id: 'local_' + Date.now(),
         email: email,
@@ -471,50 +438,44 @@ this.showToast(`Welcome ${this.user.username}`);
     reader.readAsDataURL(file);
   }
 
- async saveCrop() {
-  if (!this.cropper) return;
-  
-  const canvas = this.cropper.getCroppedCanvas({ width: 500, height: 500 });
-  
-  canvas.toBlob(async (blob) => {
-    const fd = new FormData();
-    fd.append('file', blob, 'avatar.png');
-    fd.append('folder', 'avatars');
+  async saveCrop() {
+    if (!this.cropper) return;
+   
+    const canvas = this.cropper.getCroppedCanvas({ width: 500, height: 500 });
+   
+    canvas.toBlob(async (blob) => {
+      const fd = new FormData();
+      fd.append('file', blob, 'avatar.png');
+      fd.append('folder', 'avatars');
 
-    try {
-      const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.success) this.avatarData = data.url;
-    } catch (err) {
-      this.avatarData = canvas.toDataURL('image/png');
-    }
+      try {
+        const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) this.avatarData = data.url;
+      } catch (err) {
+        this.avatarData = canvas.toDataURL('image/png');
+      }
 
-    // Update UI immediately
-    document.querySelectorAll('[data-user-avatar], #userAvatar, #panelAvatar, #avatarPreview')
-      .forEach(img => { if (img) img.src = this.avatarData; });
+      document.querySelectorAll('[data-user-avatar], #userAvatar, #panelAvatar, #avatarPreview')
+       .forEach(img => { if (img) img.src = this.avatarData; });
 
-    // Save to user profile
-    if (this.user) {
-      this.user.avatar = this.avatarData;
-      localStorage.setItem('dopetone_user', JSON.stringify(this.user));
-      
-      // CRITICAL: Save to D1 user_data
-      await this.saveUserDataToCloud();
-      
-      // ALSO update users_auth table
-      await fetch(`${API_URL}/api/auth/update-avatar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: this.user.email, avatar: this.avatarData })
-      }).catch(() => {});
-    }
+      if (this.user) {
+        this.user.avatar = this.avatarData;
+        localStorage.setItem('dopetone_user', JSON.stringify(this.user));
+       
+        await this.saveUserDataToCloud();
+       
+        await fetch(`${API_URL}/api/auth/update-avatar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.user.email, avatar: this.avatarData })
+        }).catch(() => {});
+      }
 
-    this.closeCropper();
-    this.showToast('Avatar saved to cloud');
-  }, 'image/png', 0.9);
-}
-
-
+      this.closeCropper();
+      this.showToast('Avatar saved to cloud');
+    }, 'image/png', 0.9);
+  }
 
   closeCropper() {
     this.hideModal(this.els.cropModal);
@@ -539,10 +500,8 @@ this.showToast(`Welcome ${this.user.username}`);
   async logout() {
     if (!confirm('Logout? Your data will be saved.')) return;
 
-    // Save before logout
     await this.saveUserDataToCloud();
 
-    // Clear user data but KEEP the user-specific data in storage
     localStorage.removeItem('dopetone_user');
     localStorage.removeItem('dopetone_user_id');
 
@@ -563,7 +522,6 @@ this.showToast(`Welcome ${this.user.username}`);
   }
 
   clearAllUserData() {
-    // Only clear current session, NOT user-specific data
     localStorage.removeItem('dopetone_user');
     localStorage.removeItem('dopetone_user_id');
     localStorage.removeItem('dopetone_player_state');
@@ -572,107 +530,97 @@ this.showToast(`Welcome ${this.user.username}`);
   }
 
   syncUI() {
-  const savedUser = localStorage.getItem('dopetone_user');
-  this.user = savedUser? JSON.parse(savedUser) : null;
-  const isLoggedIn =!!this.user;
+    const savedUser = localStorage.getItem('dopetone_user');
+    this.user = savedUser? JSON.parse(savedUser) : null;
+    const isLoggedIn =!!this.user;
 
-  // Your brand avatar (blue/red)
-  const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='b' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%230066ff'/%3E%3Cstop offset='100%25' stop-color='%230044aa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='100' fill='url(%23b)'/%3E%3Ccircle cx='100' cy='72' r='28' fill='%23fff'/%3E%3Cpath d='M100 112c-28 0-52 14-52 32v8c0 5 4 9 9 9h86c5 0 9-4 9-9v-8c0-18-24-32-52-32z' fill='%23fff'/%3E%3C/svg%3E";
+    const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='b' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%230066ff'/%3E%3Cstop offset='100%25' stop-color='%230044aa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='100' fill='url(%23b)'/%3E%3Ccircle cx='100' cy='72' r='28' fill='%23fff'/%3E%3Cpath d='M100 112c-28 0-52 14-52 32v8c0 5 4 9 9 9h86c5 0 9-4 9-9v-8c0-18-24-32-52-32z' fill='%23fff'/%3E%3C/svg%3E";
 
-  // GET HEADER ELEMENTS
-  const signInBtn = document.querySelector('.sign-in-btn, #signInBtn, [data-action="signin"], a[href*="signin"]');
-  const userMenu = document.querySelector('.user-menu, #userMenu,.header-avatar-wrap, [data-user-menu]');
-  const cartBtn = document.querySelector('.cart-btn, #cartBtn, [data-action="cart"]');
+    const signInBtn = document.querySelector('.sign-in-btn, #signInBtn, [data-action="signin"], a[href*="signin"]');
+    const userMenu = document.querySelector('.user-menu, #userMenu,.header-avatar-wrap, [data-user-menu]');
+    const cartBtn = document.querySelector('.cart-btn, #cartBtn, [data-action="cart"]');
 
-  if (isLoggedIn) {
-    const avatar = this.user.avatar || DEFAULT_AVATAR;
-    const name = this.user.username || this.user.email.split('@')[0];
+    if (isLoggedIn) {
+      const avatar = this.user.avatar || DEFAULT_AVATAR;
+      const name = this.user.username || this.user.email.split('@')[0];
 
-    // 1. HIDE Sign In, SHOW profile
-    if (signInBtn) signInBtn.style.display = 'none';
-    if (userMenu) userMenu.style.display = 'flex';
-    if (cartBtn) cartBtn.style.display = 'flex';
+      if (signInBtn) signInBtn.style.display = 'none';
+      if (userMenu) userMenu.style.display = 'flex';
+      if (cartBtn) cartBtn.style.display = 'flex';
 
-    // 2. Update ALL avatars
-    const avatars = [
-      this.els.userAvatar,
-      this.els.panelAvatar,
-     ...document.querySelectorAll('#userAvatar, #panelAvatar, [data-user-avatar],.header-avatar')
-    ].filter(Boolean);
+      const avatars = [
+        this.els.userAvatar,
+        this.els.panelAvatar,
+       ...document.querySelectorAll('#userAvatar, #panelAvatar, [data-user-avatar],.header-avatar')
+      ].filter(Boolean);
 
-    avatars.forEach(img => {
-      img.src = avatar;
-      img.onerror = () => img.src = DEFAULT_AVATAR;
-    });
+      avatars.forEach(img => {
+        img.src = avatar;
+        img.onerror = () => img.src = DEFAULT_AVATAR;
+      });
 
-    // 3. Update names
-    if (this.els.panelName) this.els.panelName.textContent = name;
-    if (this.els.panelEmail) this.els.panelEmail.textContent = this.user.email;
+      if (this.els.panelName) this.els.panelName.textContent = name;
+      if (this.els.panelEmail) this.els.panelEmail.textContent = this.user.email;
 
-    document.body.classList.add('logged-in');
+      document.body.classList.add('logged-in');
 
-  } else {
-    // LOGGED OUT - show Sign In, hide profile
-    if (signInBtn) signInBtn.style.display = 'flex';
-    if (userMenu) userMenu.style.display = 'none';
-    if (cartBtn) cartBtn.style.display = 'none';
+    } else {
+      if (signInBtn) signInBtn.style.display = 'flex';
+      if (userMenu) userMenu.style.display = 'none';
+      if (cartBtn) cartBtn.style.display = 'none';
 
-    // Reset avatars to default
-    document.querySelectorAll('#userAvatar, #panelAvatar, [data-user-avatar]').forEach(img => {
-      img.src = DEFAULT_AVATAR;
-    });
+      document.querySelectorAll('#userAvatar, #panelAvatar, [data-user-avatar]').forEach(img => {
+        img.src = DEFAULT_AVATAR;
+      });
 
-    document.body.classList.remove('logged-in');
+      document.body.classList.remove('logged-in');
+    }
+
+    this.updateCartCount();
+    this.fixCameraPosition();
   }
 
-  this.updateCartCount();
-  this.fixCameraPosition();
-}
-
-
-// ADD THIS METHOD
-fixCameraPosition() {
-  const style = document.createElement('style');
-  style.textContent = `
-   .panel-avatar-wrap,.avatar-upload-box {
-      position: relative;
-      display: inline-block;
+  fixCameraPosition() {
+    const style = document.createElement('style');
+    style.textContent = `
+     .panel-avatar-wrap,.avatar-upload-box {
+        position: relative;
+        display: inline-block;
+      }
+     .panel-edit-avatar,.avatar-edit-btn {
+        position: absolute!important;
+        bottom: -2px!important;
+        right: -2px!important;
+        width: 28px!important;
+        height: 28px!important;
+        background: #0f0!important;
+        border: 2px solid #000!important;
+        border-radius: 50%!important;
+        display: flex!important;
+        align-items: center!important;
+        justify-content: center!important;
+        cursor: pointer!important;
+        transition: transform 0.2s!important;
+        z-index: 10!important;
+      }
+     .panel-edit-avatar:hover,.avatar-edit-btn:hover {
+        transform: scale(1.1)!important;
+      }
+     .panel-edit-avatar i,.avatar-edit-btn i {
+        color: #000!important;
+        font-size: 12px!important;
+      }
+      #panelAvatar, #userAvatar {
+        display: block;
+        border-radius: 50%;
+      }
+    `;
+    if (!document.getElementById('avatar-fix-style')) {
+      style.id = 'avatar-fix-style';
+      document.head.appendChild(style);
     }
-   .panel-edit-avatar,.avatar-edit-btn {
-      position: absolute!important;
-      bottom: -2px!important;
-      right: -2px!important;
-      width: 28px!important;
-      height: 28px!important;
-      background: #0f0!important;
-      border: 2px solid #000!important;
-      border-radius: 50%!important;
-      display: flex!important;
-      align-items: center!important;
-      justify-content: center!important;
-      cursor: pointer!important;
-      transition: transform 0.2s!important;
-      z-index: 10!important;
-    }
-   .panel-edit-avatar:hover,.avatar-edit-btn:hover {
-      transform: scale(1.1)!important;
-    }
-   .panel-edit-avatar i,.avatar-edit-btn i {
-      color: #000!important;
-      font-size: 12px!important;
-    }
-    #panelAvatar, #userAvatar {
-      display: block;
-      border-radius: 50%;
-    }
-  `;
-  if (!document.getElementById('avatar-fix-style')) {
-    style.id = 'avatar-fix-style';
-    document.head.appendChild(style);
+    this.updateCartCount();
   }
-  this.updateCartCount();
-}
-
 
   updateCartCount() {
     const cart = JSON.parse(this.getUserStorage('dopetone_cart'));
