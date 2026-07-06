@@ -42,19 +42,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 1. Init UI stuff that doesn't need data
     initUI()
-    initMobileMenu() // safe – will auto-retry if navbar isn't injected yet
+    initMobileMenu()
     initOrbit()
     initArsenalSearch()
 
-    // 2. Load all data from D1/R2 - PARALLEL FETCH
-    const [beats, overview] = await Promise.all([
+    // 2. SCOFIELD FIX: Load data with Promise.allSettled - never crashes
+    const results = await Promise.allSettled([
       getBeats(),
       getStatsOverview()
     ]);
 
+    const beats = results[0].status === 'fulfilled'? results[0].value : [];
+    const overview = results[1].status === 'fulfilled'? results[1].value : {
+      totalStreams: 0,
+      activeListeners: 0,
+      revenueToday: 0,
+      newFollowers: 0,
+      totalEmails: 0
+    };
+
     // 3. 🔥 MAP CLOUDFLARE FIELDS TO FRONTEND FIELDS
     const normalizedBeats = (beats || []).map(beat => ({
-    ...beat,
+     ...beat,
       audio: beat.mp3_url,
       cover: beat.cover_url,
       zip: beat.zip_url,
@@ -80,7 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.renderPlaylists()
     }
 
-    await Promise.all([
+    await Promise.allSettled([
       renderWave(),
       renderLatest(),
       renderFeatured(),
@@ -98,9 +107,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     pageLoader?.classList.add('hidden')
     appContent?.classList.add('ready')
 
-    // 6. Remove loader from DOM after transition
-    setTimeout(() => pageLoader?.remove(), 500)
-
     console.log('✅ Page fully loaded')
 
   } catch (err) {
@@ -114,6 +120,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       `
     }
+  } finally {
+    // SCOFIELD FIX: ALWAYS hide skeleton - even on total failure
+    pageLoader?.classList.add('hidden')
+    appContent?.classList.add('ready')
+    setTimeout(() => pageLoader?.remove(), 500)
   }
 })
 
@@ -185,7 +196,7 @@ function initMobileMenu() {
   function openMenu() {
     panel.classList.add("active")
     overlay.classList.add("active")
-    document.body.classList.add("menu-open") // SCOFIELD: Hides player
+    document.body.classList.add("menu-open")
     document.body.classList.add("panel-open")
     document.body.style.overflow = 'hidden'
     console.log('[SCOFIELD] Menu opened')
@@ -203,13 +214,11 @@ function initMobileMenu() {
     console.log('[SCOFIELD] Menu closed')
   }
 
-  // SCOFIELD: Hamburger toggle
   toggle.addEventListener("click", (e) => {
     e.preventDefault()
     panel.classList.contains("active")? closeMenu() : openMenu()
   })
 
-  // SCOFIELD: X button close
   if (closeBtn) {
     closeBtn.addEventListener("click", (e) => {
       e.preventDefault()
@@ -218,20 +227,16 @@ function initMobileMenu() {
     })
   }
 
-  // Backdrop close
   overlay.addEventListener("click", closeMenu)
 
-  // Close on link click
   panel.addEventListener("click", (e) => {
     if (e.target.closest("a")) closeMenu()
   })
 
-  // ESC to close
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeMenu()
   })
 
-  // Swipe to close
   panel.addEventListener("touchstart", (e) => {
     dragging = true
     startX = e.touches[0].clientX
@@ -266,23 +271,17 @@ function initMobileMenu() {
   return true
 }
 
-// SCOFIELD: Also listen for navbar load event
 window.addEventListener('navbarLoaded', () => {
   initMobileMenu()
 })
 
-
-
-// expose globally so app-loader.js can call it after injecting navbar.html
 window.initMobileMenu = initMobileMenu
 
-// auto-retry if navbar is injected late via fetch/innerHTML
 if (!initMobileMenu()) {
   const navObs = new MutationObserver(() => {
     if (initMobileMenu()) navObs.disconnect()
   })
   navObs.observe(document.body, { childList: true, subtree: true })
-  // stop trying after 5s
   setTimeout(() => navObs.disconnect(), 5000)
 }
 
@@ -332,7 +331,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "licence-page.html";
   });
 
-  // keep count in sync
   setInterval(updateMobileCart, 1000);
 });
 
@@ -374,7 +372,6 @@ function setupGlobalBuyButtons(){
         updateCartCount();
       }
 
-      // 🔥 Sync cart to cloud if logged in
       window.syncUserDataToCloud?.();
 
       window.location.href = `licence-page.html?id=${beat.id}`;
@@ -398,11 +395,10 @@ export async function trackBeatPlay(beatId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         beat_id: beatId,
-        user_id: userId // Now D1 knows WHO played it
+        user_id: userId
       })
     });
 
-    // Update local play_count so UI updates instantly
     const beat = window.store.beats.find(b => b.id == beatId);
     if (beat) beat.play_count = (beat.play_count || 0) + 1;
 
@@ -413,7 +409,6 @@ export async function trackBeatPlay(beatId) {
   }
 }
 
-// Make it global so other components can call it
 window.trackBeatPlay = trackBeatPlay;
 // ---- AUTH BRIDGE – nav + auth modal coordination ----
 const navPanel = document.querySelector('.mobile-panel');
@@ -426,13 +421,12 @@ function closeNav(){
 }
 
 function openAuthModal(mode = 'login'){
-  // kill nav first, otherwise its blur stays under the auth modal
   closeNav();
-  
+
   const modal = document.getElementById('authModal');
   if(!modal) return false;
   const isSignup = mode === 'signup';
-  
+
   const uGroup = document.getElementById('usernameGroup');
   const avatarWrap = document.getElementById('signupAvatarWrap');
   const title = document.getElementById('authTitle');
@@ -441,13 +435,13 @@ function openAuthModal(mode = 'login'){
   const switchText = document.getElementById('switchAuthText');
   const switchBtn = document.getElementById('switchAuthBtn');
 
-  if(uGroup) uGroup.style.display = isSignup ? 'block' : 'none';
-  if(avatarWrap) avatarWrap.style.display = isSignup ? 'block' : 'none';
-  if(title) title.textContent = isSignup ? 'Create Account' : 'Welcome Back';
-  if(subtitle) subtitle.textContent = isSignup ? 'Join the arsenal' : 'Login to access your arsenal';
-  if(submit) submit.textContent = isSignup ? 'Create Account' : 'Continue';
-  if(switchText) switchText.textContent = isSignup ? 'Already have an account?' : "Don't have an account?";
-  if(switchBtn) switchBtn.textContent = isSignup ? 'Login' : 'Sign Up';
+  if(uGroup) uGroup.style.display = isSignup? 'block' : 'none';
+  if(avatarWrap) avatarWrap.style.display = isSignup? 'block' : 'none';
+  if(title) title.textContent = isSignup? 'Create Account' : 'Welcome Back';
+  if(subtitle) subtitle.textContent = isSignup? 'Join the arsenal' : 'Login to access your arsenal';
+  if(submit) submit.textContent = isSignup? 'Create Account' : 'Continue';
+  if(switchText) switchText.textContent = isSignup? 'Already have an account?' : "Don't have an account?";
+  if(switchBtn) switchBtn.textContent = isSignup? 'Login' : 'Sign Up';
 
   modal.classList.add('active');
   modal.setAttribute('aria-hidden', 'false');
@@ -462,7 +456,6 @@ function closeAuthModal(){
     modal.classList.remove('active');
     modal.setAttribute('aria-hidden', 'true');
   }
-  // only restore scroll if nav panel is also closed
   if(!navPanel?.classList.contains('active')){
     document.body.style.overflow = '';
     document.body.classList.remove('panel-open');
@@ -470,7 +463,6 @@ function closeAuthModal(){
   }
 }
 
-// clean up any leftover blur when auth modal closes – works with your existing auth.js too
 const authModalEl = document.getElementById('authModal');
 if(authModalEl){
   new MutationObserver(() => {
@@ -485,7 +477,6 @@ if(authModalEl){
   }, true);
 }
 
-// navbar buttons -> auth
 document.addEventListener('click', e => {
   const loginEl = e.target.closest('#loginBtn');
   const signupEl = e.target.closest('#signupBtn');

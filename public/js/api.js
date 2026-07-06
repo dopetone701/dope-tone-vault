@@ -68,17 +68,23 @@ export async function uploadBeat({ title, genre, bpm, price, audioFile, coverFil
 
 // ===== CONTROL CENTER ENDPOINTS =====
 
-// Get overview stats for top 4 cards
+// Get overview stats for top 4 cards - WITH TIMEOUT
 export async function getStatsOverview() {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
   try {
-    const res = await fetch(`${API_URL}/api/stats/overview`);
+    const res = await fetch(`${API_URL}/api/stats/overview`, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!res.ok) throw new Error('Failed to fetch overview');
     return await res.json();
   } catch (err) {
+    clearTimeout(timeoutId);
     console.error('getStatsOverview error:', err);
     return { totalStreams: 0, activeListeners: 0, revenueToday: 0, newFollowers: 0, totalEmails: 0 };
   }
 }
+
 
 // Get sparkline data for 4 mini graphs
 export async function getStatsSparks() {
