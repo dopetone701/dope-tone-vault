@@ -1,5 +1,5 @@
 // api.js - Cloudflare D1 + R2 ONLY
-const API_URL = 'https://dope-tone-api.dopetone701.workers.dev';
+const API_URL = 'https://api.dopetonevault.com/api/beats'
 const R2_PUBLIC = 'https://pub-60c4e7268904a31a890e52771845a014.r2.dev';
 
 // ===== EXISTING: GET BEATS =====
