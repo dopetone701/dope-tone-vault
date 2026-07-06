@@ -17,3 +17,7 @@ server.js
 package-lock.json
 structure.txt
 schema.sql
+
+.dev.vars*
+!.dev.vars.example
+!.env.example
