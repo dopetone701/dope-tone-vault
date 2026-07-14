@@ -373,3 +373,30 @@ body{
     z-index: 9997 !important;
   }
 }
+/* === PRO SEARCH - NO ZOOM BUG === */
+.arsenal-search{
+  position:relative;
+  isolation:isolate;
+}
+
+#beatSearch{
+  font-size:16px !important; /* kills iOS auto-zoom */
+  line-height:1.2;
+  -webkit-appearance:none;
+  appearance:none;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+
+@media(max-width:768px){
+  #beatSearch{
+    font-size:16px !important;
+    letter-spacing:-0.1px;
+  }
+  /* prevent body scroll jump when focused */
+  body.search-focused{
+    position:fixed;
+    width:100%;
+    overflow:hidden;
+  }
+}

@@ -1,7 +1,9 @@
 /* ===============================
-   🎵 RP UNIQUE - ZERO CONFLICTS
+   LATEST + RP TRACK - FULL LENGTH - SAFE
+   ONE PLAY BTN ONLY - ZERO CONFLICTS
    =============================== */
 
+/* WRAPPER */
 .rp-wrap {
   width: 100%;
   padding: 24px 0 32px;
@@ -9,25 +11,17 @@
   position: relative;
   display: none;
 }
-
-.rp-wrap.rp-active {
-  display: block;
-}
-
-.rp-head {
-  padding: 0 20px;
-  margin-bottom: 16px;
-}
-
+.rp-wrap.rp-active { display: block; }
+.rp-head { padding: 0 20px; margin-bottom: 16px; }
 .rp-heading {
-  font-size: 22px;
-  font-weight: 700;
-  color: #fff;
-  margin: 0;
-  letter-spacing: -0.3px;
+  font-size: 22px; font-weight: 700;
+  color: #fff; margin: 0; letter-spacing: -0.3px;
 }
 
-/* SCROLL CONTAINER */
+/* ===============================
+   VIEWPORTS - BOTH MOUNTS
+   =============================== */
+#latestMount,
 #rpTrackMount {
   width: 100%;
   overflow-x: auto;
@@ -35,150 +29,131 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  touch-action: pan-x pan-y;
 }
+#latestMount::-webkit-scrollbar,
+#rpTrackMount::-webkit-scrollbar { display: none; }
+#latestMount:active,
+#rpTrackMount:active { cursor: grabbing; }
+#latestMount.is-dragging,
+#rpTrackMount.is-dragging { cursor: grabbing; user-select: none; }
 
-#rpTrackMount::-webkit-scrollbar {
-  display: none;
-}
-
-/* SCROLLER */
-.rp-scroll {
+/* ===============================
+   SCROLLER
+   =============================== */
+#latestMount .rp-scroll,
+#rpTrackMount .rp-scroll {
   display: flex;
+  flex-wrap: nowrap;
   gap: 16px;
   padding: 10px 20px 20px;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
   width: max-content;
+  min-width: 100%;
+  scroll-snap-type: x proximity;
 }
 
-/* CARD */
-.rp-card {
+/* ===============================
+   CARD
+   =============================== */
+#latestMount .rp-card,
+#rpTrackMount .rp-card {
   flex: 0 0 140px;
+  width: 140px;
   scroll-snap-align: center;
+  position: relative;
   cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
   user-select: none;
 }
-
-.rp-card:hover {
-  transform: translateY(-2px);
+#latestMount .rp-card:hover,
+#rpTrackMount .rp-card:hover {
+  transform: translateY(-4px);
 }
 
-.rp-card.rp-inview {
-  transform: scale(1.05);
-}
-
-.rp-card.rp-inview:hover {
-  transform: scale(1.05) translateY(-2px);
-}
-
-/* COVER */
-.rp-cover {
+/* ===============================
+   COVER
+   =============================== */
+#latestMount .rp-cover,
+#rpTrackMount .rp-cover {
   position: relative;
   width: 140px;
   height: 140px;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   background: #1a1a1a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
-
-.rp-cover img {
+#latestMount .rp-cover img,
+#rpTrackMount .rp-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.3s ease;
+  pointer-events: none;
+  border-radius: 14px;
 }
 
-.rp-card:hover.rp-cover img {
-  transform: scale(1.05);
-}
-
-/* PLAY BUTTON OVERLAY - APPLE PREMIUM */
-.rp-playbtn {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
-  display: flex;
+/* ===============================
+   PLAY BUTTON - SINGLE - SVG ONLY
+   NO CSS TRIANGLE, NO GRADIENT HACK
+   =============================== */
+#latestMount .rp-playbtn,
+#rpTrackMount .rp-playbtn {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%,-50%) scale(0.9) !important;
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255,255,255,.15) !important;
+  background: rgba(0,0,0,.68) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #fff !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
+  z-index: 5 !important;
   cursor: pointer;
   opacity: 0;
-  transform: scale(0.8);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease !important;
 }
 
-/* SHOW ON HOVER */
-.rp-card:hover .rp-playbtn {
-  opacity: 1;
-  transform: scale(1);
+#latestMount .rp-playbtn .rp-icon,
+#rpTrackMount .rp-playbtn .rp-icon {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 18px !important;
+  height: 18px !important;
+  line-height: 1;
+}
+#latestMount .rp-playbtn .rp-icon svg,
+#rpTrackMount .rp-playbtn .rp-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  fill: #fff !important;
+  display: block !important;
 }
 
-/* HOVER STATE */
-.rp-playbtn:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: scale(1.05);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+/* HOVER / ACTIVE STATES */
+#latestMount .rp-card:hover .rp-playbtn,
+#rpTrackMount .rp-card:hover .rp-playbtn,
+#latestMount .rp-card.active .rp-playbtn,
+#rpTrackMount .rp-card.active .rp-playbtn,
+#latestMount .rp-playbtn.rp-active,
+#rpTrackMount .rp-playbtn.rp-active {
+  opacity: 1 !important;
+  transform: translate(-50%,-50%) scale(1) !important;
 }
 
-/* ACTIVE/PRESSED */
-.rp-playbtn:active {
-  transform: scale(0.95);
-  transition: all 0.1s ease;
-}
-
-/* PLAYING STATE */
-.rp-playbtn.rp-active {
-  opacity: 1;
-  transform: scale(1);
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.35);
-}
-
-/* TRIANGLE ICON - BIGGER + PREMIUM */
-.rp-playbtn .rp-icon {
-  font-size: 0; /* Hide text */
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 12px 0 12px 18px;
-  border-color: transparent transparent transparent #fff;
-  margin-left: 3px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-  transition: all 0.2s ease;
-}
-
-/* PAUSE ICON WHEN ACTIVE */
-.rp-playbtn.rp-active .rp-icon {
-  width: 16px;
-  height: 18px;
-  border: none;
-  margin-left: 0;
-  background: linear-gradient(to right, 
-    #fff 0%, #fff 35%, 
-    transparent 35%, transparent 65%, 
-    #fff 65%, #fff 100%
-  );
-}
-
-
-/* TITLE */
-.rp-title {
+/* ===============================
+   TITLE
+   =============================== */
+#latestMount .rp-title,
+#rpTrackMount .rp-title {
   margin-top: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -191,136 +166,86 @@
   line-height: 1.3;
 }
 
-/* FADE EDGES */
-.rp-wrap::before,
-.rp-wrap::after {
-  content: '';
-  position: absolute;
-  top: 60px;
-  bottom: 20px;
-  width: 40px;
-  pointer-events: none;
-  z-index: 1;
+/* ===============================
+   MORE CARD
+   =============================== */
+#latestMount .more-card,
+#rpTrackMount .more-card { cursor: pointer; }
+
+#latestMount .more-cover,
+#rpTrackMount .more-cover {
+  width: 140px; height: 140px; border-radius: 14px;
+  background: rgba(255,255,255,0.05)!important;
+  backdrop-filter: blur(20px);
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+#latestMount .more-grid,
+#rpTrackMount .more-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 8px; width: 60px; height: 60px;
+}
+#latestMount .more-dot,
+#rpTrackMount .more-dot {
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.3);
+  border-radius: 3px; transition: all 0.3s ease;
+}
+#latestMount .more-card:hover .more-dot,
+#rpTrackMount .more-card:hover .more-dot { background: rgba(0,234,255,0.6); }
+#latestMount .more-card:hover .more-cover,
+#rpTrackMount .more-card:hover .more-cover {
+  background: rgba(0,234,255,0.1)!important;
+  border-color: rgba(0,234,255,0.3);
 }
 
-.rp-wrap::before {
-  left: 0;
-  background: linear-gradient(to right,
-    var(--bg-color, #0a0a0a) 0%,
-    transparent 100%
-  );
-}
-
-.rp-wrap::after {
-  right: 0;
-  background: linear-gradient(to left,
-    var(--bg-color, #0a0a0a) 0%,
-    transparent 100%
-  );
-}
-
-/* MOBILE */
+/* ===============================
+   MOBILE
+   =============================== */
 @media (max-width: 768px) {
- .rp-wrap {
-    padding: 20px 0 28px;
-  }
+  #latestMount .rp-scroll,
+  #rpTrackMount .rp-scroll { gap: 12px !important; padding: 8px 12px 16px !important; }
 
- .rp-heading {
-    font-size: 20px;
-  }
+  #latestMount .rp-card,
+  #rpTrackMount .rp-card { flex: 0 0 140px !important; width: 140px !important; }
 
- .rp-scroll {
-    gap: 12px;
-    padding: 8px 16px 16px;
-  }
+  #latestMount .rp-cover, #latestMount .rp-cover img,
+  #rpTrackMount .rp-cover, #rpTrackMount .rp-cover img { width: 140px !important; height: 140px !important; }
 
- .rp-card {
-    flex: 0 0 120px;
-  }
- 
- .rp-cover {
-    width: 120px;
-    height: 120px;
-    border-radius: 10px;
-  }
+  #latestMount .rp-playbtn,
+  #rpTrackMount .rp-playbtn { opacity: 1 !important; width: 44px !important; height: 44px !important; }
 
- .rp-playbtn {
-    width: 44px;
-    height: 44px;
-    font-size: 18px;
-  }
-
- .rp-title {
-    font-size: 12px;
-    margin-top: 8px;
-  }
-
- .rp-wrap::before,
- .rp-wrap::after {
-    width: 24px;
-  }
+  #latestMount .more-cover,
+  #rpTrackMount .more-cover { width: 140px !important; height: 140px !important; }
 }
 
 @media (max-width: 480px) {
- .rp-card {
-    flex: 0 0 110px;
+  #latestMount .rp-card, #rpTrackMount .rp-card { flex: 0 0 120px !important; width: 120px !important; }
+  #latestMount .rp-cover, #latestMount .rp-cover img,
+  #rpTrackMount .rp-cover, #rpTrackMount .rp-cover img,
+  #latestMount .more-cover, #rpTrackMount .more-cover { width: 120px !important; height: 120px !important; }
+}
+
+/* KILL OLD LEAKS */
+.latest-card{ all:unset; }
+#latestMount .play-btn,
+#latestMount .latest-play,
+#rpTrackMount .play-btn,
+#rpTrackMount .latest-play { display:none !important; }
+@media (max-width: 768px) {
+  #latestMount .rp-playbtn,
+  #rpTrackMount .rp-playbtn {
+    width: 62px !important;
+    height: 62px !important;
   }
- 
- .rp-cover {
-    width: 110px;
-    height: 110px;
+  #latestMount .rp-playbtn .rp-icon,
+  #rpTrackMount .rp-playbtn .rp-icon {
+    width: 24px !important;
+    height: 24px !important;
   }
-}
-#rpTrackMount {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-  cursor: grab; /* ADD THIS */
-}
-
-#rpTrackMount:active {
-  cursor: grabbing; /* ADD THIS */
-}
-/* ===============================
-   MORE CARD — LATEST SECTION
-=============================== */
-.more-card {
-  cursor: pointer;
-}
-
-.more-cover {
-  background: rgba(255,255,255,0.05)!important;
-  backdrop-filter: blur(20px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.more-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  width: 60px;
-  height: 60px;
-}
-
-.more-dot {
-  width: 100%;
-  height: 100%;
-  background: rgba(255,255,255,0.3);
-  border-radius: 3px;
-  transition: all 0.3s ease;
-}
-
-.more-card:hover.more-dot {
-  background: rgba(0,234,255,0.6);
-  transform: scale(1.1);
-}
-
-.more-card:hover.more-cover {
-  background: rgba(0,234,255,0.1)!important;
-  border: 1px solid rgba(0,234,255,0.3);
+  #latestMount .rp-playbtn .rp-icon svg,
+  #rpTrackMount .rp-playbtn .rp-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
 }

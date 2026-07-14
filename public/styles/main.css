@@ -2152,3 +2152,163 @@ body {
 #globalPlayerUI #gpNext {
   margin: 0 4px !important; /* Extra 8px total between them */
 }
+/* 🔒 FORCE ORBIT INSIDE BTN - FINAL */
+.cta-btn{
+  position:relative !important;
+  overflow:hidden !important;
+  isolation:isolate !important;
+  border-radius:30px !important;
+  transform:translateZ(0);
+  will-change:transform;
+}
+
+.cta-btn::before{
+  inset:0 !important; /* was -2px = leak */
+  border-radius:inherit !important;
+  filter:blur(4px) !important;
+  opacity:0;
+  z-index:0 !important;
+  pointer-events:none;
+}
+
+.cta-btn.orbit::before{
+  opacity:1 !important;
+  animation: orbitSpin 2s linear infinite !important;
+}
+
+/* keep text above orbit */
+.cta-btn *{
+  position:relative;
+  z-index:1;
+}
+
+@keyframes orbitSpin{
+  from{transform:rotate(0deg) scale(1);}
+  to{transform:rotate(360deg) scale(1);}
+}
+
+@media(max-width:768px){
+  .cta-btn::before{
+    inset:1px !important; /* 1px inside border on mobile */
+    filter:blur(3px) !important;
+  }
+}
+/* 🔥 FEATURED TITLE - DNA FAMILY MODE */
+.section-title{
+  background-image:
+    linear-gradient(90deg, #4da6ff, #ffffff, #ff4d94),
+    url("../images/metal.jpg");
+  background-size:cover;
+  background-position:center;
+  background-blend-mode:overlay;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:2px;
+  font-weight:800;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.6)) drop-shadow(0 0 12px rgba(77,166,255,.35));
+}
+
+/* make fire icon match DNA */
+.section-title .title-icon,
+.section-title::before{
+  -webkit-text-fill-color:initial;
+  background:none;
+  filter:drop-shadow(0 0 8px rgba(255,77,148,.6));
+}
+
+/* underline - DNA blue/red */
+.section-title::after{
+  background:linear-gradient(90deg,#4da6ff 0%, #ffffff 50%, #ff4d94 100%) !important;
+  height:3px !important;
+  box-shadow:0 0 12px rgba(77,166,255,.5), 0 0 12px rgba(255,77,148,.35) !important;
+}
+/* 🔥 LATEST TITLE ONLY - DNA FAMILY MODE */
+.rp-heading{
+  background-image:
+    linear-gradient(90deg, #4da6ff, #ffffff, #ff4d94),
+    url("../images/metal.jpg");
+  background-size:cover;
+  background-position:center;
+  background-blend-mode:overlay;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  font-weight:800;
+  letter-spacing:1.5px;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(77,166,255,.3));
+}
+
+.rp-heading::after{
+  content:"";
+  display:block;
+  width:100%;
+  height:3px;
+  margin-top:6px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#4da6ff 0%, #ffffff 50%, #ff4d94 100%);
+  box-shadow:0 0 10px rgba(77,166,255,.5), 0 0 10px rgba(255,77,148,.35);
+}
+/* === FIX MAIN LAYOUT - LEFT SPACE + RIGHT KISSING EDGE === */
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+.main-layout#beats {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  gap: 24px !important;
+  max-width: 1600px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+}
+
+.main-layout#beats .left-panel {
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+/* right side = notice board + trending */
+.main-layout#beats .right-panel,
+.main-layout#beats .notice-board-wrap,
+#noticeBoard,
+#trendingMount {
+  width: 100% !important;
+  max-width: 360px !important;
+  box-sizing: border-box !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+
+#trendingMount {
+  padding-right: 4px !important; /* stops kissing scrollbar */
+}
+
+/* featured + latest sections also centered */
+.featured-section,
+#latestWrap {
+  max-width: 1600px !important;
+  margin: 0 auto !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* mobile */
+@media (max-width: 1100px) {
+  .main-layout#beats {
+    grid-template-columns: 1fr !important;
+    padding: 0 14px !important;
+  }
+  .main-layout#beats .right-panel,
+  #noticeBoard,
+  #trendingMount {
+    max-width: 100% !important;
+  }
+}

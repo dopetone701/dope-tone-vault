@@ -52,6 +52,12 @@ export async function initCharts() {
     loadTradeChartData(e.detail.beatId, currentRange);
   });
 
+  window.addEventListener('cc_downloaded', (e)=>{
+  console.log('[CHARTS] Download tracked', e.detail.beat_id);
+  // your existing poll will bump in 800ms
+  });
+
+
   window.addEventListener('cc_cart_updated', (e) => {
     rebuildCartMapFromStorage();
     updateCartLineRealtime(e.detail?.beat_id, e.detail?.count);

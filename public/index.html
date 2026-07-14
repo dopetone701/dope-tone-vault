@@ -104,22 +104,26 @@
                             <button class="filter-capsule" data-genre="drill">Drill</button>
                         </div>
                         <div class="arsenal-search">
-                            <input
-                                type="search"
-                                name="beat_search_qt7x9f"
-                                id="beatSearch"
-                                placeholder="Search..."
-                                autocomplete="off"
-                                role="searchbox"
-                                readonly
-                                onfocus="this.removeAttribute('readonly')"
-                                data-lpignore="true"
-                                data-1p-ignore="true"
-                                data-bwignore="true"
-                                data-form-type="other"
-                            >
-                            <div class="search-dropdown" id="searchDropdown"></div>
-                        </div>
+  <input
+    type="text"
+    inputmode="search"
+    name="beat_search_qt7x9f"
+    id="beatSearch"
+    placeholder="Search..."
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="off"
+    spellcheck="false"
+    maxlength="50"
+    enterkeyhint="search"
+    data-lpignore="true"
+    data-1p-ignore="true"
+    data-bwignore="true"
+    data-form-type="other"
+  >
+  <div class="search-dropdown" id="searchDropdown"></div>
+</div>
+
                     </div>
                     <div id="waveList" class="wave-list"></div>
                 </div>
@@ -351,6 +355,7 @@
 
     <!-- ================= APP BOOT - CONTROLS LOAD ORDER ================= -->
     <script type="module" src="js/app-loader.js"></script>
+    
     
     <!-- ================= PLAYER & CORE ================= -->
     <script src="js/global-player.js"></script>

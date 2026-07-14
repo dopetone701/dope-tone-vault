@@ -389,3 +389,25 @@ export async function trackBeatPlay(beatId) {
 }
 
 window.trackBeatPlay = trackBeatPlay;
+// 🛒 SIMPLE CART CLICK - NO FILES - RESPECTS EMPTY / ACTIVE
+(function(){
+  function goCart(){
+    try{
+      const raw = localStorage.getItem('dopetone_cart') || '[]';
+      const cart = JSON.parse(raw);
+      if(!cart.length) location.href = 'licence-page.html';
+      else location.href = `licence-page.html?id=${cart[0].id}`;
+    }catch{
+      location.href = 'licence-page.html';
+    }
+  }
+  const bind = ()=>{
+    const d = document.getElementById('cartBtn');
+    const m = document.getElementById('mobileCartBtn');
+    if(d){ d.onclick = (e)=>{ e.preventDefault(); goCart(); }; }
+    if(m){ m.onclick = (e)=>{ e.preventDefault(); goCart(); }; }
+  };
+  document.addEventListener('DOMContentLoaded', bind);
+  setTimeout(bind, 500);
+  setTimeout(bind, 1500);
+})();

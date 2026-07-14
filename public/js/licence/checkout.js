@@ -132,13 +132,28 @@ export async function createStripeCheckout(e){
   const timeout = setTimeout(()=>controller.abort(), 15000);
 
   try {
-    console.log("→ Calling Stripe worker:", `${STRIPE_WORKER_URL}/create-checkout-session`);
+       console.log("→ Calling Stripe worker:", `${STRIPE_WORKER_URL}/create-checkout-session`);
+    // --- EMAIL IS OPTIONAL - Stripe will ask on checkout page ---
+    const customerEmail = localStorage.getItem("dopetone_user_email") || localStorage.getItem("dt_email") || document.querySelector('#customerEmail')?.value || document.querySelector('input[type="email"]')?.value || null;
+    const customerName = localStorage.getItem("dopetone_user_name") || document.querySelector('#customerName')?.value || "";
+
+    // No more blocking if no email - let Stripe collect it
+
     const res = await fetch(`${STRIPE_WORKER_URL}/create-checkout-session`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ licences: licencesToSend, cart: beatsToCheckout, user_id: pendingPayload.user_id }),
+      body: JSON.stringify({
+        licences: licencesToSend,
+        cart: beatsToCheckout,
+        user_id: pendingPayload.user_id,
+        email: customerEmail, // will be null if not found - worker will handle it
+        customer_email: customerEmail,
+        name: customerName,
+        customer_name: customerName
+      }),
       signal: controller.signal
     });
+
     clearTimeout(timeout);
 
     let data;
