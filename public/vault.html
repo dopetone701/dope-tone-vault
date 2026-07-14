@@ -4,27 +4,24 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Your Vault - Dope Tone</title>
 <style>
-body{margin:0;background:#0a0f2a;color:#fff;font-family:system-ui;padding:24px}
-.wrap{max-width:860px;margin:0 auto}
-.head{background:linear-gradient(135deg,#1a1f4d,#0a0f2a);border:1px solid #222c5a;border-radius:20px;padding:22px;margin-bottom:16px}
-.card{background:linear-gradient(180deg,#151b3d,#101536);border:1px solid #242c5f;border-radius:20px;padding:20px;margin:14px 0}
+body{margin:0;background:#0a0a0a;color:#fff;font-family:system-ui;padding:24px;max-width:900px;margin:0 auto}
+.head{background:#151515;border:1px solid #2a2a2a;border-radius:20px;padding:22px;margin-bottom:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.card{background:#151515;border:1px solid #2a2a2a;border-radius:20px;padding:20px;margin:14px 0}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:11px 14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:12px;margin:6px 6px 0 0;border:0;cursor:pointer}
-.btn-mp3{background:#fff;color:#000}.btn-wav{background:#7c6cff;color:#fff}.btn-stems{background:#00e6c0;color:#000}
-.btn-doc{background:#1e2550;color:#aab3ff;border:1px solid #2d376e}
-.btn-disabled{opacity:.3;pointer-events:none}
-.badge{font-size:10px;padding:4px 8px;border-radius:99px;background:#1e2550;color:#7d8bff;border:1px solid #2d376e}
-.muted{color:#7d8bff;font-size:12px;line-height:1.6}
+.btn-mp3{background:#fff;color:#000}.btn-wav{background:#8b5cf6;color:#fff}.btn-stems{background:#00ffc6;color:#000}
+.btn-doc{background:#222;color:#fff;border:1px solid #333}
+.btn-disabled{opacity:.25;pointer-events:none}
+.badge{font-size:10px;padding:4px 10px;border-radius:99px;background:#222;color:#888;border:1px solid #333;margin-left:8px}
+.muted{color:#888;font-size:12px;line-height:1.6}
 h1{margin:0 0 6px;font-size:22px}
 </style>
 </head>
 <body>
-<div class="wrap">
 <div class="head">
 <h1>🔒 Your Private Vault</h1>
 <div id="status" class="muted">Verifying...</div>
 </div>
 <div id="downloads"></div>
-</div>
 
 <script>
 const VAULT_API = 'https://vault-orders-api.dopetone701.workers.dev';
@@ -58,57 +55,33 @@ else {
 .then(r=>r.json()).then(data=>{
   if(data.status!=='paid'){ statusEl.textContent='Status: '+data.status; return; }
   const email=data.customer_email||''; const date=new Date().toLocaleString();
-  statusEl.innerHTML='✅ Paid - $'+(data.total_cents/100).toFixed(2)+' - '+data.downloads.length+' beats unlocked<br>'+email+' • '+date;
+  statusEl.innerHTML='✅ Paid - $'+(data.total_cents/100).toFixed(2)+' - '+data.downloads.length+' beats unlocked<br><small>'+email+' • '+date+'</small>';
 
   data.downloads.forEach(d=>{
     const rule=getRule(d.license_type);
     const card=document.createElement('div'); card.className='card';
-
-    const inc = [];
-    if(rule.mp3) inc.push('MP3'+(rule===RULES.free?' (tagged)':''));
-    if(rule.wav) inc.push('WAV');
-    if(rule.stems) inc.push('STEMS');
-    if(!rule.stems) inc.push('No stems');
+    const inc=[]; if(rule.mp3) inc.push('MP3'+(rule===RULES.free?' (tagged)':'')); if(rule.wav) inc.push('WAV'); if(rule.stems) inc.push('STEMS'); if(!rule.stems) inc.push('No stems');
 
     card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center"><b>'+d.beat_title+'</b> <span class="badge">'+d.license_type.toUpperCase()+' • $'+(d.amount/100).toFixed(2)+'</span></div>' +
     '<div class="muted" style="margin:8px 0">'+inc.join(' • ')+'<br>'+rule.streams+' • '+rule.rights+'</div>' +
     '<div id="btns-'+d.beat_id+'"></div>';
-
     downloadsEl.appendChild(card);
     const btnWrap=card.querySelector('#btns-'+d.beat_id);
 
-    if(rule.mp3){
-      const a=document.createElement('a'); a.className='btn btn-mp3'; a.href=VAULT_API+d.links.mp3; a.textContent='⬇ MP3';
-      btnWrap.appendChild(a);
-    }
-    if(rule.wav){
-      const a=document.createElement('a'); a.className='btn btn-wav'; a.href=VAULT_API+d.links.wav; a.textContent='⬇ WAV';
-      btnWrap.appendChild(a);
-    } else {
-      const s=document.createElement('span'); s.className='btn btn-doc btn-disabled'; s.textContent='WAV not in Free';
-      if(d.license_type.toLowerCase()!=='free') s.textContent='WAV not in '+d.license_type;
-      btnWrap.appendChild(s);
-    }
-    if(rule.stems){
-      const a=document.createElement('a'); a.className='btn btn-stems'; a.href=VAULT_API+d.links.stems; a.textContent='⬇ STEMS ZIP';
-      btnWrap.appendChild(a);
-    } else {
-      const s=document.createElement('span'); s.className='btn btn-doc btn-disabled'; s.textContent= d.license_type.toLowerCase()==='basic'? 'No stems in Basic' : 'No stems';
-      btnWrap.appendChild(s);
-    }
+    if(rule.mp3){ const a=document.createElement('a'); a.className='btn btn-mp3'; a.href=VAULT_API+d.links.mp3; a.textContent='MP3 Private Link'; btnWrap.appendChild(a); }
+    if(rule.wav){ const a=document.createElement('a'); a.className='btn btn-wav'; a.href=VAULT_API+d.links.wav; a.textContent='WAV Private Link'; btnWrap.appendChild(a); }
+    else { const s=document.createElement('span'); s.className='btn btn-doc btn-disabled'; s.textContent='No WAV in Free'; btnWrap.appendChild(s); }
+    if(rule.stems){ const a=document.createElement('a'); a.className='btn btn-stems'; a.href=VAULT_API+d.links.stems; a.textContent='STEMS Private Link'; btnWrap.appendChild(a); }
+    else { const s=document.createElement('span'); s.className='btn btn-doc btn-disabled'; s.textContent= d.license_type.toLowerCase()==='basic'?'No stems in Basic':'No stems'; btnWrap.appendChild(s); }
 
-    const lic=document.createElement('button'); lic.className='btn btn-doc'; lic.textContent='📄 Licence Agreement';
+    const lic=document.createElement('button'); lic.className='btn btn-doc'; lic.textContent='📄 Licence';
     lic.onclick=()=>{
-      const txt='DOPE TONE MUSIC - OFFICIAL LICENCE\n'+
-      'Beat: '+d.beat_title+'\nLicence: '+d.license_type.toUpperCase()+'\nBuyer: '+email+'\nOrder: '+sid+'\nDate: '+date+'\nAmount: $'+(d.amount/100).toFixed(2)+'\n\n'+
-      'INCLUDES: '+inc.join(', ')+'\n'+
-      'STREAMS: '+rule.streams+'\nRIGHTS: '+rule.rights+'\n\n'+
-      (d.license_type.toLowerCase().includes('exclusive')?'This beat is now removed from store. Full ownership transferred to buyer.':'Non-exclusive licence. Dope Tone retains ownership.')+'\n\nCredit: Prod. By Dope Tone\nTerms: https://dopetonevault.com/terms\n';
+      const txt='DOPE TONE MUSIC - OFFICIAL LICENCE\nBeat: '+d.beat_title+'\nLicence: '+d.license_type.toUpperCase()+'\nBuyer: '+email+'\nOrder: '+sid+'\nDate: '+date+'\nAmount: $'+(d.amount/100).toFixed(2)+'\n\nINCLUDES: '+inc.join(', ')+'\nSTREAMS: '+rule.streams+'\nRIGHTS: '+rule.rights+'\n\n'+(d.license_type.toLowerCase().includes('exclusive')?'Full ownership transferred. Beat removed from store.':'Non-exclusive. Dope Tone retains ownership.')+'\n\nCredit: Prod. By Dope Tone\n';
       dlText(d.beat_title+'_'+d.license_type+'_Licence.txt', txt);
     };
     const read=document.createElement('button'); read.className='btn btn-doc'; read.textContent='📖 Readme';
     read.onclick=()=>{
-      const txt='Thanks for buying '+d.beat_title+'!\n\nYOU GOT: '+inc.join(', ')+'\n'+rule.streams+'\n'+rule.rights+'\n\nHOW TO:\n1. Import '+ (rule.wav?'WAV':'MP3') +' to DAW\n2. Record\n3. Mix & Master'+(rule.stems?' (use stems for full mix)':'')+'\n4. Credit: Prod. By Dope Tone\n\nSupport: support@dopetonevault.com\n';
+      const txt='Thanks for buying '+d.beat_title+'!\n\nYOU GOT: '+inc.join(', ')+'\n'+rule.streams+'\n'+rule.rights+'\n\nHOW TO:\n1. Import to DAW\n2. Record\n3. Mix\n4. Credit: Prod. By Dope Tone\n\nSupport: support@dopetonevault.com\n';
       dlText(d.beat_title+'_README.txt', txt);
     };
     btnWrap.appendChild(lic); btnWrap.appendChild(read);
