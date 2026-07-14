@@ -469,3 +469,32 @@ body.licence-page #waveList .wave-row:not(.explore-row){ display: none !importan
   padding-left: 2px !important;
   padding-right: 2px !important;
 }
+/* === CLOSE SIDE GAPS - MOBILE EDGE TO EDGE === */
+@media(max-width:768px){
+  #beats.main-layout,
+  .main-layout,
+  .left-panel,
+  .arsenal-section,
+  .arsenal-inner{
+    padding-left:0 !important;
+    padding-right:0 !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    width:100% !important;
+    max-width:100% !important;
+  }
+
+  #waveList.wave-list{
+    padding:0 8px !important;
+    gap:10px !important;
+  }
+
+  /* your cards */
+  .wave-card,
+  .beat-card{
+    margin-left:0 !important;
+    margin-right:0 !important;
+    width:100% !important;
+    border-radius:14px !important;
+  }
+}
