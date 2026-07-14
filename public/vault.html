@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Vault - Dope Tone</title>
+<style>
+body{background:#0a0a0a;color:#fff;font-family:system-ui;padding:24px}
+.card{background:#151515;border:1px solid #222;border-radius:16px;padding:20px;margin:12px 0}
+.btn{display:inline-block;padding:10px 14px;background:#fff;color:#000;border-radius:10px;text-decoration:none;font-weight:700;margin:6px 6px 0 0;font-size:12px}
+.btn-wav{background:#8b5cf6;color:#fff}
+.btn-zip{background:#00ffc6;color:#000}
+h1{font-size:22px}
+</style>
+</head>
+<body>
+<h1>🔒 Your Private Vault</h1>
+<p id="status">Checking your purchase...</p>
+<div id="downloads"></div>
+
+<script>
+const VAULT_API = 'https://vault-orders-api.dopetone701.workers.dev';
+const sid = new URLSearchParams(location.search).get('session_id') || localStorage.getItem('dopetone_last_session_id');
+
+if(!sid){
+  document.getElementById('status').innerHTML = 'No session found. Go back to <a href="/success.html" style="color:#8b5cf6">success page</a> or re-enter your email.';
+} else {
+  document.getElementById('status').textContent = 'Session: ' + sid.slice(0,20) + '... Verifying...';
+  fetch(`${VAULT_API}/api/orders/status?session_id=${encodeURIComponent(sid)}`)
+    .then(r=>r.json())
+    .then(data=>{
+      console.log(data);
+      if(data.status !== 'paid'){
+        document.getElementById('status').textContent = 'Not paid yet - status: ' + data.status;
+        return;
+      }
+      document.getElementById('status').innerHTML = `✅ Paid - $${(data.total_cents/100).toFixed(2)} - ${data.purchases.length} beats unlocked<br><small>${data.customer_email||''}</small>`;
+      let html = '';
+      (data.downloads || []).forEach(d=>{
+        html += `<div class="card">
+          <b>${d.beat_title}</b> - ${d.license_type} - $${(d.amount/100).toFixed(2)}
+          <br/><br/>
+          <a class="btn" href="${VAULT_API}${d.links.mp3}" download>MP3 Private Link</a>
+          <a class="btn btn-wav" href="${VAULT_API}${d.links.wav}" download>WAV Private Link</a>
+          <a class="btn btn-zip" href="${VAULT_API}${d.links.stems}" download>STEMS Private Link</a>
+        </div>`;
+      });
+      if(!html) html = '<p>No beats in this purchase. Check purchases table.</p>';
+      document.getElementById('downloads').innerHTML = html;
+    })
+    .catch(e=>{
+      document.getElementById('status').textContent = 'Error: ' + e.message;
+    });
+}
+</script>
+</body>
+</html>
