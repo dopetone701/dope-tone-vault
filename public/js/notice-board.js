@@ -1,4 +1,4 @@
-// js/notice-board.js - SPOTIFY LAYOUT KEPT - ONLY COLOR BLUE DNA + CHAT SLIDE FIX
+// js/notice-board.js - SPOTIFY LAYOUT KEPT - ONLY COLOR BLUE DNA + CHAT SLIDE FIX + 15 AUTO REPLIES AI
 const DROP_API = "https://dt-drop-zone-api.dopetone701.workers.dev";
 const TICKETS_API = "https://support-tickets-api.dopetone701.workers.dev";
 const FEED = document.getElementById('noticeBoardFeed');
@@ -82,7 +82,6 @@ window.openBeatCard = (beatId, dropId) => {
   if(beats.length<=1){ restEl.innerHTML=''; restEl.style.display='none'; }
   else{
     restEl.style.display='flex';
-    // ONLY CHANGE HERE: border blue instead of green #1ED760
     restEl.innerHTML = beats.map(x=>`<img src="${x.cover_url}" onclick="openBeatCard('${x.id}','${drop? drop.id : ''}')" style="width:60px;height:60px;border-radius:10px;object-fit:cover;cursor:pointer;flex-shrink:0;border:${String(x.id)===String(b.id)?'2px solid #0d3bff':'1px solid #333'}">`).join('');
   }
   document.getElementById('dtBeatModal').style.display='flex';
@@ -99,7 +98,7 @@ function buildLayout(){
       #dtChatList{scroll-behavior:smooth}
     </style>
     <div id="dtDropsWrap" style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px"></div>
-    <div id="dtChatWrap" style="margin-top:14px;background:#0a0a0a;border:1px solid #1e1e2e;border-radius:20px;overflow:hidden;max-height:500px;transition:all .6s cubic-bezier(.22,1,.36,1);transform:translateY(0);opacity:1">
+    <div id="dtChatWrap" style="margin-top:14px;background:#0a0a0a;border:1px solid #1e1e2e;border-radius:20px;overflow:hidden;max-height:500px;transition:all.6s cubic-bezier(.22,1,.36,1);transform:translateY(0);opacity:1">
       <div style="padding:10px 14px;background:#0a0a0f;border-bottom:1px solid #1e1e2e;display:flex;align-items:center;gap:8px"><div style="width:7px;height:7px;background:#0d3bff;border-radius:50%;box-shadow:0 0 8px #0d3bff"></div><span style="color:#fff;font-size:10px;font-weight:800">LIVE CHAT • Dope Tone Creators</span><span id="dtTypingHead" style="margin-left:auto;font-size:9px;color:#0d3bff;display:none">typing...</span></div>
       <div id="dtChatList" style="height:320px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background-image:url('images/chat-bg.png');background-size:cover;background-position:center;background-color:#000"></div>
       <div id="dtTypingIndicator" style="display:none;padding:0 14px 10px;background:rgba(0,0,0,.75)"><div style="display:flex;gap:8px;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#0d3bff,#ff1a2e);display:flex;align-items:center;justify-content:center;color:#fff;font-size:7px;font-weight:800">CR</div><div style="background:#15152a;border:1px solid #0d3bff33;padding:10px 14px;border-radius:18px">●●</div></div></div>
@@ -109,13 +108,11 @@ function showChatSmooth(){
   const w=document.getElementById('dtChatWrap'); if(!w) return;
   w.style.maxHeight='500px'; w.style.opacity='1'; w.style.transform='translateY(0)'; w.style.pointerEvents='auto';
   chatVisible=true; chatActiveUntil=Date.now()+60000;
-  // SLIDE TO SCREEN VIEW - THIS WAS MISSING
   setTimeout(()=>{ w.scrollIntoView({behavior:'smooth', block:'center'}); scrollToLatest(); }, 100);
 }
 function hideChatSmooth(){
   const w=document.getElementById('dtChatWrap'); if(!w||!chatVisible) return;
   w.style.maxHeight='0px'; w.style.opacity='0'; w.style.transform='translateY(-20px)'; w.style.pointerEvents='none'; chatVisible=false;
-  // SLIDE BACK TO POSTS
   const posts=document.getElementById('dtDropsWrap'); if(posts) posts.scrollIntoView({behavior:'smooth', block:'start'});
 }
 function scrollToLatest(){ const l=document.getElementById('dtChatList'); if(l) l.scrollTo({top:l.scrollHeight, behavior:'smooth'}); }
@@ -141,21 +138,86 @@ function appendBubble(c,isTemp=false){
   if(isCreator && String(c.reply_to_user_id)===String(uid)) showChatSmooth();
 }
 
-async function sendChat(){
-  if(isSending) return; const t=INPUT?.value.trim(); if(!t) return; if(t===lastSentContent && (Date.now()-lastSentTime)<3000) return;
-  isSending=true; const {name,email,uid}=getRealUser(); INPUT.value=''; lastSentContent=t; lastSentTime=Date.now();
-  appendBubble({id:'tmp-'+Date.now(),user_name:name,user_id:uid,message:t,is_admin:0,created_at:new Date().toISOString()},true);
-  showChatSmooth(); scrollToLatest(); // SCROLL TO LAST
-  if(SEND) SEND.disabled=true;
-  try{ await fetch(`${DROP_API}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_name:name,user_id:uid,email,message:t,is_admin:0})}); }catch{}
-  if(SEND) SEND.disabled=false; isSending=false; setTimeout(scrollToLatest, 300);
+// ===== NEW AI PATIENCE AUTO-REPLY - 15 PRO MESSAGES =====
+const AUTO_REPLIES = [
+  "Got you! 🔵 We're locked in studio right now - private reply dropping soon!",
+  "Love that message! 💙 Creators saw it, we'll hit you back private in a sec",
+  "Real one! 🙏 Hold tight - Creators reply incoming soon, keep the vibes",
+  "Heard you loud! 🎹 We're cooking beats but your message is priority - brb",
+  "Yo that's fire! 🔥 Private response coming, stay in the Drop Zone",
+  "Appreciate you family! 💎 Creators on it - reply soon, don't go nowhere",
+  "Copy! 🫡 We're in session but we got you - private DM in a minute",
+  "Say less! 🚀 Your message hit the private queue - Creators tapping in soon",
+  "On God we saw it! ⚡ Private reply loading... patience = exclusive drops",
+  "You good! 🖤 We reply to every real one - private response incoming",
+  "Bet! 🎧 Creators reviewing now - private reply soon, keep streaming",
+  "Respect! 🔵🔴 Your words matter - private answer in a moment",
+  "Loud & clear! 📡 We're mixing but your chat is flagged private - soon!",
+  "My G! 🙌 Creators will reply private - we don't leave family hanging",
+  "100% got it! ✨ Stay tuned in Drop Zone - private reply OTW, patience pays with freebies"
+];
+// ===== SURGICAL FIX - REPLY TIME AFTER SWAP =====
+function showAutoReply(){
+  const {uid}=getRealUser();
+  let lastIdx = parseInt(localStorage.getItem('dt_auto_idx')||'-1');
+  let idx;
+  do{ idx = Math.floor(Math.random()*AUTO_REPLIES.length); } while(idx===lastIdx && AUTO_REPLIES.length>1);
+  localStorage.setItem('dt_auto_idx', String(idx));
+  const msg = AUTO_REPLIES[idx];
+
+  // Wait for real message to replace temp before typing
+  showTyping(true);
+  setTimeout(()=>{
+    showTyping(false);
+    appendBubble({id:'auto-'+Date.now(), user_name:'Dope Tone Creators', user_id:'admin', message:msg, is_admin:1, reply_to_user_id:uid, created_at:new Date().toISOString()});
+    scrollToLatest();
+  }, 1200);
 }
+
+async function sendChat(){
+  if(isSending) return;
+  const t=INPUT?.value.trim();
+  if(!t) return;
+  if(t===lastSentContent && (Date.now()-lastSentTime)<3000) return;
+
+  isSending=true;
+  const {name,email,uid}=getRealUser();
+  INPUT.value='';
+  lastSentContent=t;
+  lastSentTime=Date.now();
+
+  // 1. Temp bubble instantly
+  appendBubble({id:'tmp-'+Date.now(),user_name:name,user_id:uid,message:t,is_admin:0,created_at:new Date().toISOString()},true);
+  showChatSmooth();
+  scrollToLatest();
+
+  if(SEND) SEND.disabled=true;
+
+  try{
+    await fetch(`${DROP_API}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_name:name,user_id:uid,email,message:t,is_admin:0})});
+  }catch{}
+
+  if(SEND) SEND.disabled=false;
+  isSending=false;
+
+  // 2. Wait for pollChat to replace temp with real (poll every 3s)
+  // poll once quickly after 800ms to swap, THEN auto reply
+  setTimeout(async ()=>{
+    await pollChat(); // forces real message to replace tmp
+    scrollToLatest();
+    // 3. Now auto reply AFTER swap - looks natural: user -> creator
+    setTimeout(()=> showAutoReply(), 800);
+  }, 900);
+}
+
+
+
 
 // ============ POSTS - EXACTLY AS RESTORED - ONLY GREEN->BLUE ============
 async function loadDrops() {
   if (!FEED) return;
   try {
-    const res = await fetch(`${DROP_API}/api/notices?t=${Date.now()}`, {cache:'no-store'});
+    const res = await fetch(`${DROP_API}/api/notices?t=${Date.now()}`,{cache:'no-store'});
     const drops = await res.json();
     const hash=JSON.stringify(drops.map(d=>d.id)); if(hash===dropsHash) return; dropsHash=hash;
     window._dropsCache = drops;
