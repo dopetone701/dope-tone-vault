@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-
 <title>All Beats • Dope Tone</title>
 
 <!-- FONTS -->
@@ -33,7 +32,7 @@
 <!-- CROPPER -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
 
-<!-- 🔥 INFINITE SCROLL + BG FIX -->
+<!-- 🔥 INFINITE SCROLL + BG FIX + NO OVERZOOM -->
 <style>
 html { scroll-behavior: smooth; }
 body {
@@ -43,6 +42,7 @@ body {
   -webkit-overflow-scrolling: touch;
   min-height: 100vh;
   padding-bottom: 140px!important;
+  overflow-x:hidden!important;
 }
 #gridSection {
   min-height: 100vh;
@@ -91,7 +91,9 @@ body {
 .grid-actions { display: flex; gap: 8px; margin-top: 10px; }
 .grid-buy { flex: 1; background: linear-gradient(135deg, #00f0ff, #7c3aed); border: none; padding: 8px; border-radius: 8px; color: white; font-size: 13px; cursor: pointer; }
 #gridSentinel { height: 400px!important; width: 100%; }
+#waveSentinel { height:400px!important; width:100%; display:block!important; }
 #arsenalSection .arsenal-container { display: flex!important; flex-direction: column!important; gap: 12px; padding: 20px; }
+#beatSearch{ font-size:16px!important; }
 .global-player{ position:fixed!important; bottom:12px!important; left:50%!important; transform:translateX(-50%)!important; z-index:99999!important; }
 @media (max-width: 768px){
   #gridContainer { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
@@ -147,6 +149,7 @@ body {
 <div class="arsenal-container" id="waveList">
 <p class="loading">Loading beats...</p>
 </div>
+<div id="waveSentinel"></div>
 </section>
 
 <!-- ================= GRID VIEW - FIXED WITH SENTINEL ================= -->
@@ -193,7 +196,7 @@ body {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                 </button>
                 <button id="gpMore" class="gp-side player-btn" title="More">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2z"/></svg>
                 </button>
             </div>
             <div class="gp-progress-wrap">
@@ -234,7 +237,7 @@ body {
             <button id="mpRepeat" class="player-btn" title="Repeat"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
             <button id="mpDownload"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
             <button id="mpBuy" class="player-btn" title="Buy Track"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></button>
-            <button id="mpMore"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
+            <button id="mpMore"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2 .9-2 2 .9 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
         </div>
     </div>
 
