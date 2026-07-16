@@ -138,22 +138,33 @@ function ensureWave(row, beat){
   wave.on('seeking', (p) => { const d = window.globalPlayer?.getDuration?.() || 0; if (window.__CURRENT_BEAT__?.id === beat.id && window.__CURRENT_LIST__ === 'wave' && d) window.globalPlayer?.seek(p * d); });
 }
 
-export function renderWave(limit = null) {
+export async function renderWave(limit = null) {
   const container = document.getElementById("waveList");
   if (!container) return;
   waveCache.forEach(w => { try{w.destroy()}catch{} }); waveCache.clear();
   if (observer) { observer.disconnect(); observer = null; }
 
-  // 🔥 FIX - FORCE ALL ON BEATS.HTML, CLEAR STUCK 10 FILTER
+  // 🔥 FIX - FORCE ALL ON BEATS.HTML, CLEAR STUCK 10 FILTER + REFECTH LIVE
   const path = window.location.pathname;
   const isBeatsPage = path.includes("beats.html");
   const isIndexPage =!isBeatsPage;
+
+  // If we are on beats.html and store only has 10, fetch ALL from worker
+  if(isBeatsPage && window.store?.beats?.length <= 10){
+    try{
+      const r = await fetch(`https://all-beats-analytics-api.dopetone701.workers.dev/api/beats?limit=1000`);
+      if(r.ok){
+        const j = await r.json();
+        const all = j.beats || j.data || j || [];
+        if(all.length > 10) window.store.beats = all;
+      }
+    }catch(e){ console.warn('refetch all beats failed', e); }
+  }
+
   if(isBeatsPage){
-    // if user came from index with 10 limit, wipe it
-    if(window.filteredPlaylistBeats && window.filteredPlaylistBeats.length <= 10 && (window.store?.beats?.length || 0) > 10){
-      // keep it only if it's a real search/filter, else clear to show all
-      const q = (document.getElementById('beatSearch')?.value || '').trim();
-      if(!q) window.filteredPlaylistBeats = null;
+    const q = (document.getElementById('beatSearch')?.value || '').trim();
+    if(!q && window.filteredPlaylistBeats && window.filteredPlaylistBeats.length <= 10 && (window.store?.beats?.length || 0) > 10){
+      window.filteredPlaylistBeats = null;
     }
   }
 
@@ -221,6 +232,7 @@ export function renderWave(limit = null) {
   };
   document.addEventListener("playerTimeUpdate", window.__waveTimeSync__);
 }
+
 
 window.addEventListener('auth_success', () => {
   const pendingId = sessionStorage.getItem('pendingDownloadBeat');
