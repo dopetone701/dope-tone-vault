@@ -144,13 +144,12 @@ export async function renderWave(limit = null) {
   waveCache.forEach(w => { try{w.destroy()}catch{} }); waveCache.clear();
   if (observer) { observer.disconnect(); observer = null; }
 
-  // 🔥 FIX - FORCE ALL ON BEATS.HTML, CLEAR STUCK 10 FILTER + REFECTH LIVE
-  const path = window.location.pathname;
-const isBeatsPage = path.includes("beats.html") || path.includes("/beats")
-
+  // 🔥 FIX - WORKS FOR /beats AND /beats.html + NO EXPLORE ON BEATS PAGE
+  const path = window.location.pathname.toLowerCase();
+  const isBeatsPage = path.includes("beats.html") || path.includes("/beats");
   const isIndexPage =!isBeatsPage;
 
-  // If we are on beats.html and store only has 10, fetch ALL from worker
+  // If we are on beats page and store only has 10, fetch ALL from worker
   if(isBeatsPage && window.store?.beats?.length <= 10){
     try{
       const r = await fetch(`https://all-beats-analytics-api.dopetone701.workers.dev/api/beats?limit=1000`);
@@ -206,7 +205,6 @@ const isBeatsPage = path.includes("beats.html") || path.includes("/beats")
     });
   }
   if (!isBeatsPage) {
-
     const exploreRow = document.createElement("div");
     exploreRow.className = "wave-row explore-row";
     exploreRow.innerHTML = `<div class="wave-left"><div class="wave-cover-wrap"><img src="images/logo.png" /></div></div><div class="wave-info"><div class="wave-title">Explore More Beats</div><div class="wave-meta">Unlock full arsenal →</div></div><div class="wave-bar explore-bar"><div class="explore-line"></div></div><div class="wave-actions"><a href="beats.html" class="explore-btn">Explore</a></div>`;
@@ -234,6 +232,7 @@ const isBeatsPage = path.includes("beats.html") || path.includes("/beats")
   };
   document.addEventListener("playerTimeUpdate", window.__waveTimeSync__);
 }
+
 
 
 window.addEventListener('auth_success', () => {
