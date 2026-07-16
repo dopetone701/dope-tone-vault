@@ -1,7 +1,7 @@
 // ===============================
 // 🎵 PLAYLISTS PAGE FINAL - CLOUDFLARE ONLY + MONETIZATION
 // ===============================
-import { renderPlaylistCapsulesOnly } from "./playlist-render.js"
+import { renderPlaylistCapsulesOnly } from "./dt-vault-render.js"
 import { renderWave } from "../sections/wave.js"
 import { renderPlaylistSimilarTracks } from "./playlist-similar.js"
 

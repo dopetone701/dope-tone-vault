@@ -203,6 +203,28 @@ export function getVaultPlaylist(playlistId){
     return playlists.find(p => p.id === playlistId);
 }
 
+
+export function createVaultPlaylist(name){
+    if(!name || !name.trim()) return { ok:false, message:"Enter name" };
+    let raw; try{ raw = JSON.parse(localStorage.getItem(VAULT_KEY)||"[]"); }catch{ raw=[]; }
+    if(raw.find(p=>p.name.toLowerCase()===name.toLowerCase().trim())) return { ok:false, message:"Already exists" };
+    const pl = { id: 'dt_'+Math.random().toString(36).slice(2,9)+Date.now().toString(36), name: name.trim(), isLiked:false, created: Date.now(), beats:[] };
+    raw.push(pl); saveVaultPlaylists(raw); return { ok:true, playlist: pl };
+}
+export function addBeatToVault(playlistId, beat){
+    let playlists; try{ playlists=JSON.parse(localStorage.getItem(VAULT_KEY)||"[]"); }catch{ playlists=[]; }
+    const pl=playlists.find(p=>p.id===playlistId); if(!pl) return {ok:false};
+    const exists=(pl.beats||[]).find(b=>String(b.id)===String(beat.id));
+    if(exists){ pl.beats=pl.beats.filter(b=>String(b.id)!==String(beat.id)); saveVaultPlaylists(playlists); return {ok:true,removed:true}; }
+    else { pl.beats.unshift(beat); saveVaultPlaylists(playlists); return {ok:true,added:true}; }
+}
+export function removeBeatFromVault(playlistId, beatId){
+    let playlists; try{ playlists=JSON.parse(localStorage.getItem(VAULT_KEY)||"[]"); }catch{ playlists=[]; }
+    const pl=playlists.find(p=>p.id===playlistId); if(!pl) return;
+    pl.beats=(pl.beats||[]).filter(b=>String(b.id)!==String(beatId)); saveVaultPlaylists(playlists);
+}
+
+
 window.getVaultPlaylists = getVaultPlaylists;
 window.getPlaylists = getVaultPlaylists;
 window.isVaultLiked = isVaultLiked;

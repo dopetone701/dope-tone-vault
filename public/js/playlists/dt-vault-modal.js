@@ -4,6 +4,7 @@
 // ===============================
 import { getVaultPlaylists, createVaultPlaylist, addBeatToVault } from "./dt-vault-storage.js"
 
+
 const getMode = (b) => {
   if (!b) return 'paid';
   let m = (b.monetization_mode || b.monetizationMode || '').toLowerCase().trim();
