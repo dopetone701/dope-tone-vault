@@ -149,11 +149,11 @@ footer, .footer {
 </section>
 
 <!-- ================= VIEW TOGGLE + SEARCH + PILLS - FIXED ================= -->
-<div class="view-toggle" style="display:flex; flex-wrap:nowrap; align-items:center; gap:10px; overflow-x:auto; white-space:nowrap; scrollbar-width:none; width:100%; -webkit-overflow-scrolling:touch;">
+<div class="view-toggle" style="display:flex; align-items:center; gap:10px; width:100%; background:#0f172a; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.06); overflow:visible;">
   <button id="listBtn" class="active" style="flex:0 0 auto;">List</button>
   <button id="gridBtn" style="flex:0 0 auto;">Grid</button>
  
-  <div class="arsenal-pills" style="display:flex; flex-wrap:nowrap; gap:6px; flex:0 0 auto;">
+  <div class="arsenal-pills" style="display:flex; flex-wrap:nowrap; gap:6px; flex:0 1 auto; overflow-x:auto; white-space:nowrap; scrollbar-width:none; -webkit-overflow-scrolling:touch;">
     <button class="pill active" data-filter="all" style="flex:0 0 auto;">All</button>
     <button class="pill" data-filter="trap" style="flex:0 0 auto;">Trap</button>
     <button class="pill" data-filter="edm" style="flex:0 0 auto;">EDM</button>
@@ -165,7 +165,7 @@ footer, .footer {
     <button class="pill" data-filter="hiphop" style="flex:0 0 auto;">Hip Hop</button>
   </div>
 
-  <div class="arsenal-search" style="flex:0 0 180px; min-width:180px; margin-left:10px;">
+  <div class="arsenal-search" style="flex:0 0 220px; min-width:180px; position:relative; overflow:visible; margin-left:12px;">
     <input
       type="search"
       name="beat_search_qt7x9f"
@@ -181,9 +181,10 @@ footer, .footer {
       data-form-type="other"
       style="width:100%;"
     >
-    <div class="search-dropdown" id="searchDropdown"></div>
+    <div class="search-dropdown" id="searchDropdown" style="position:absolute; top:calc(100% + 12px); left:0; right:0; z-index:99999; background:rgba(15,23,42,0.98); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.9);"></div>
   </div>
 </div>
+
 
 <style>
 .view-toggle::-webkit-scrollbar { display:none !important; }

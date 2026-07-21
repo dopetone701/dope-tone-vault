@@ -1,10 +1,9 @@
 /* ===============================
    ARSENAL HERO - FINAL PREMIUM FULL WIDTH
    Dark Red Glass + Dark Blue Edges + Metal Text
-   No space between nav and hero
+   No space between nav and hero - MOBILE WAVE FIXED
 ================================ */
 
-/* KILL NAV GAP */
 nav, .navbar, header {
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
@@ -13,20 +12,15 @@ nav, .navbar, header {
 .arsenal-hero {
   position: relative !important;
   overflow: hidden !important;
-  
-  /* FULL WIDTH - NO SPACE */
   margin: 0 !important;
   width: 100% !important;
   border-radius: 0 0 20px 20px !important;
   padding: 52px 24px !important;
-  
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   text-align: center !important;
-  
-  /* Dark Red Glass */
   background: linear-gradient(180deg, rgba(70, 0, 22, 0.92) 0%, rgba(30, 0, 12, 0.96) 100%) !important;
   backdrop-filter: blur(16px) saturate(130%) !important;
   -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
@@ -35,7 +29,7 @@ nav, .navbar, header {
   box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
 }
 
-/* WAVE - PERFECT CENTERED FULL WIDTH */
+/* WAVE - PERFECT CENTERED FULL WIDTH - DESKTOP */
 .arsenal-hero::before {
   content: "" !important;
   position: absolute !important;
@@ -44,13 +38,13 @@ nav, .navbar, header {
   width: 100% !important;
   height: 100% !important;
   transform: translate(-50%, -50%) !important;
-  background: url("../images/beats-wav-bg.png") center center / 100% 100% no-repeat !important;
-  opacity: 0.32 !important;
+  background: url("../images/beats-wav-bg.png") center center / 100% auto no-repeat !important;
+  opacity: 0.55 !important;
   z-index: 0 !important;
   pointer-events: none !important;
 }
 
-/* DARK BLUE EDGE DARKEN - HIGHLIGHT TEXT */
+/* DARK BLUE EDGE DARKEN */
 .arsenal-hero::after {
   content: "" !important;
   position: absolute !important;
@@ -73,7 +67,6 @@ nav, .navbar, header {
   font-weight: 900 !important;
   letter-spacing: 1px !important;
   line-height: 1.05 !important;
-  
   background-image:
     linear-gradient(90deg, #4da6ff, #ffffff, #ff4d94),
     url("../images/metal.jpg") !important;
@@ -82,7 +75,6 @@ nav, .navbar, header {
   background-blend-mode: overlay !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
-  
   filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)) drop-shadow(0 8px 24px rgba(0,0,0,0.9)) !important;
 }
 
@@ -114,11 +106,8 @@ nav, .navbar, header {
   100% { background-position: 200% center; }
 }
 
-/* ===============================
-   FILTER BAR - CLEAN + SMALL RED BLUE
-================================ */
-.arsenal-bar,
-.filter-bar {
+/* FILTER BAR */
+.arsenal-bar, .filter-bar, .view-toggle {
   background: rgba(18, 22, 42, 0.85) !important;
   border: 1px solid rgba(255,255,255,0.07) !important;
   border-radius: 12px !important;
@@ -130,8 +119,7 @@ nav, .navbar, header {
   overflow: visible !important;
 }
 
-.arsenal-bar::after,
-.filter-bar::after {
+.arsenal-bar::after, .filter-bar::after {
   content: "" !important;
   position: absolute !important;
   bottom: -1px !important;
@@ -142,8 +130,7 @@ nav, .navbar, header {
   opacity: 0.35 !important;
 }
 
-.arsenal-pills button,
-.filter-bar button {
+.arsenal-pills button, .filter-bar button, .view-toggle button {
   background: rgba(255,255,255,0.05) !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
   box-shadow: none !important;
@@ -161,8 +148,7 @@ nav, .navbar, header {
   color: #8fd3ff !important;
 }
 
-.arsenal-pills button.active,
-.filter-bar button.active {
+.arsenal-pills button.active, .filter-bar button.active, .view-toggle button.active {
   background: #fff !important;
   color: #0a0f28 !important;
   border-color: #fff !important;
@@ -176,15 +162,34 @@ nav, .navbar, header {
   border-radius: 100px !important;
 }
 
-/* MOBILE - NO OVERLAP */
+.arsenal-pills {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+.arsenal-pills::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+.search-dropdown { scrollbar-width: none !important; }
+.search-dropdown::-webkit-scrollbar { display: none !important; }
+.fade-out { opacity: 0 !important; transition: opacity 0.4s ease !important; pointer-events: none !important; }
+
+/* MOBILE - WAVE FIXED + NOT EXTREME END */
 @media (max-width: 768px) {
   .arsenal-hero {
     padding: 32px 16px !important;
     border-radius: 0 0 16px 16px !important;
-    min-height: 130px !important;
+    min-height: 145px !important;
   }
   .arsenal-hero::before {
-    background: url("../images/beats-wav-bg.png") center center / cover no-repeat !important;
+    background: url("../images/beats-wav-bg.png") center center / 140% auto no-repeat !important;
+    opacity: 0.75 !important;
+    height: 100% !important;
+    width: 100% !important;
+    display: block !important;
+    visibility: visible !important;
   }
   .arsenal-hero::after {
     border-radius: 0 0 16px 16px !important;
@@ -197,12 +202,24 @@ nav, .navbar, header {
     letter-spacing: 1px !important;
     max-width: 95% !important;
   }
-  .arsenal-bar,
-  .filter-bar {
+  .arsenal-bar, .filter-bar, .view-toggle {
     margin: 10px 10px 0 !important;
     width: calc(100% - 20px) !important;
+    overflow: visible !important;
+  }
+  /* pills scroll inside, search closer */
+  .view-toggle {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+  .arsenal-pills {
+    flex: 0 1 auto !important;
+  }
+  .arsenal-search {
+    flex: 0 0 140px !important;
+    min-width: 120px !important;
+    margin-left: 8px !important;
   }
 }
-
-
-

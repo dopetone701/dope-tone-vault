@@ -541,3 +541,6 @@ body, html, main, #beats,
 .arsenal-section, .main-layout {
   overflow: visible !important;
 }
+.arsenal-pills::-webkit-scrollbar,.search-dropdown::-webkit-scrollbar { display:none!important; }
+.arsenal-pills,.search-dropdown { scrollbar-width:none!important; -ms-overflow-style:none!important; }
+.fade-out { opacity:0!important; transition: opacity.4s ease; }
