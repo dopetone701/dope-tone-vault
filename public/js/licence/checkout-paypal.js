@@ -212,7 +212,12 @@ export function setupCheckout(){
 }
 
 window.createStripeCheckout = createStripeCheckout;
+window.createPaypalCheckout = createStripeCheckout;
 window.setupCheckout = setupCheckout;
+
+// Alias so both names work
+export const createPaypalCheckout = createStripeCheckout;
+export { createStripeCheckout as createStripeCheckoutLegacy };
 
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', setupCheckout); }
 else { setupCheckout(); }
