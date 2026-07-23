@@ -1,5 +1,5 @@
 import { renderSimilarTracks } from "./licence-similar.js"
-import { setupCheckout } from "./checkout.js";
+import { setupCheckout } from "./checkout-paypal.js";
 
 // ==================== REAL APIS - PRO ====================
 const API_URL = 'https://api.dopetonevault.com';
