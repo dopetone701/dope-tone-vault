@@ -163,12 +163,44 @@ function appendBubble(c,isTemp=false){
   const list=document.getElementById('dtChatList'); if(!list) return;
   if(!isTemp && lastChatIds.has(c.id)) return;
   const {uid}=getRealUser();
+
+  // PRIVATE CHAT FILTER
   if(c.is_admin==1 && c.reply_to_user_id && String(c.reply_to_user_id)!==String(uid)) return;
+
+  // === FIX DEDUP FOR USER MESSAGES ===
+  if(!isTemp && c.is_admin!=1){
+    // if this is server echo of our own message, convert temp bubble instead of creating new one at bottom
+    const temps = document.querySelectorAll('#dtChatList [data-id^="tmp-"]');
+    for(let tmp of temps){
+      if(tmp.textContent.includes(c.message.substring(0,10)) || tmp.dataset.tempContent === c.message){
+        // upgrade temp bubble to real id - keeps position
+        tmp.dataset.id = c.id;
+        tmp.dataset.ts = c.created_at;
+        lastChatIds.add(c.id);
+        // update time tick
+        const timeEl = tmp.querySelector('div div:last-child');
+        if(timeEl) timeEl.textContent = new Date(c.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' ✓✓';
+        return; // DON'T create duplicate at bottom
+      }
+    }
+    // if we already have this exact message from same user in last 60s, skip
+    const existing = Array.from(list.querySelectorAll('.dt-chat-item')).some(el => 
+      el.dataset.id && !el.dataset.id.startsWith('tmp-') && 
+      el.textContent.trim().includes(c.message.substring(0,15)) &&
+      Date.now() - new Date(el.dataset.ts||0).getTime() < 60000
+    );
+    if(existing) {
+      lastChatIds.add(c.id);
+      return;
+    }
+  }
+
   if(!isTemp) lastChatIds.add(c.id);
   const isCreator=c.is_admin==1; if(isCreator) showTyping(false);
   const div=document.createElement('div'); 
   div.dataset.id=c.id; 
   div.dataset.ts=c.created_at; 
+  div.dataset.tempContent=c.message;
   div.className='dt-chat-item';
   if(isCreator){
     div.style.cssText='align-self:flex-start;max-width:85%;display:flex;gap:8px';
@@ -177,12 +209,10 @@ function appendBubble(c,isTemp=false){
     div.style.cssText='align-self:flex-end;max-width:80%;display:flex;gap:8px;flex-direction:row-reverse';
     div.innerHTML=`<div style="width:28px;height:28px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#000;font-size:9px;font-weight:900">${escapeHtml((c.user_name||'F')[0].toUpperCase())}</div><div style="background:linear-gradient(135deg,#0d3bff,#2a3fff);border:1px solid #3a5bff;border-right:2px solid #ff1a2e;color:#fff;padding:10px 14px;border-radius:18px 18px 4px 18px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(13,59,255,.45)">${escapeHtml(c.message)}<div style="font-size:9px;color:#b9c4ff;text-align:right;margin-top:4px">${new Date(c.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} ✓✓</div></div>`;
   }
-  list.appendChild(div); 
-  scrollToLatest();
+  list.appendChild(div); scrollToLatest();
   setTimeout(()=> hideUserOnly(div), ttlLeft(c.created_at));
   if(isCreator && String(c.reply_to_user_id)===String(uid)) showChatSmooth();
 }
-
 
 
 // ============ v5 PRO AI SYSTEM - PST STYLE RENDER ============
