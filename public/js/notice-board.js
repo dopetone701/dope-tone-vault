@@ -534,155 +534,137 @@ setInterval(()=>{
 
 
 // ============ MOBILE FULLSCREEN FIX - SURGICAL ============
-// ============ MOBILE FULLSCREEN FIX - INPUT ON KEYBOARD ============
 (function(){
   if(document.getElementById('dtMobileFSStyle')) return;
   const style = document.createElement('style');
   style.id='dtMobileFSStyle';
   style.textContent = `
   @media (max-width: 768px){
-    body.dt-chat-fs { overflow:hidden !important; position:fixed; width:100%; height:100dvh; }
+    body.dt-chat-fs { overflow:hidden !important; position:fixed; width:100%; }
     #dtChatWrap.dt-fs-active{
-      position:fixed !important; inset:0 !important; z-index:9999999 !important;
-      height:100dvh !important; width:100% !important; margin:0 !important; border-radius:0 !important;
-      display:flex !important; flex-direction:column !important; background:#000 !important;
+      position:fixed !important; inset:0 !important;
+      z-index:9999999 !important;
+      max-height:100dvh !important;
+      height:100dvh !important;
+      width:100% !important;
+      margin:0 !important; border-radius:0 !important;
+      display:flex !important; flex-direction:column !important;
+      transform:none !important; opacity:1 !important;
+      background:#000 !important;
     }
-    #dtChatWrap.dt-fs-active #dtChatList{ flex:1 !important; height:auto !important; padding-bottom:90px !important; overflow-y:auto !important; }
+    #dtChatWrap.dt-fs-active #dtChatList{ flex:1 !important; height:auto !important; max-height:none !important; }
+    #dtChatWrap.dt-fs-active #dtChatList{ padding-bottom:90px !important; }
     #dtMobileInputBar{
-      position:fixed; left:0; right:0; bottom:0; z-index:10000000;
-      background:#0a0a0a; border-top:1px solid #1e1e2e;
-      padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+      position:fixed; left:0; right:0; bottom:0;
+      z-index:10000000; background:#0a0a0a;
+      border-top:1px solid #1e1e2e; padding:10px 10px calc(10px + env(safe-area-inset-bottom));
       display:none; gap:8px; align-items:center;
-      transition:bottom 0.15s ease-out;
     }
     #dtMobileInputBar.active{ display:flex; }
-    #dtMobileInputBar input{ flex:1; background:#151515; border:1px solid #282828; color:#fff; padding:12px 14px; border-radius:99px; font-size:16px !important; outline:none; }
+    #dtMobileInputBar input{
+      flex:1; background:#151515; border:1px solid #282828; color:#fff;
+      padding:12px 14px; border-radius:99px; font-size:16px !important; outline:none;
+    }
+    #dtFsMinBtn{
+      width:32px; height:32px; border-radius:50%; background:#1e1e1e; border:1px solid #333;
+      color:#fff; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; flex-shrink:0;
+    }
   }
   `;
   document.head.appendChild(style);
 
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+  let originalInputParent = null;
+  let originalSendNext = null;
   let bodyTop = 0;
 
   function ensureFsUI(){
-    if(document.getElementById('dtMobileInputBar')) return;
-    const bar = document.createElement('div'); bar.id='dtMobileInputBar';
-    const cloneInput = document.createElement('input'); cloneInput.id='dtFsInputClone'; cloneInput.placeholder = INPUT?.placeholder || 'Message...';
-    const minBtn = document.createElement('button'); minBtn.innerHTML='✕'; minBtn.style.cssText='width:36px;height:36px;border-radius:50%;background:#232323;border:1px solid #333;color:#fff;cursor:pointer'; minBtn.onclick = exitFS;
-    const sendBtn = document.createElement('button'); sendBtn.innerHTML='➤'; sendBtn.style.cssText='width:42px;height:42px;border-radius:50%;background:#0d3bff;color:#fff;border:none;font-weight:800;cursor:pointer';
-    bar.appendChild(minBtn); bar.appendChild(cloneInput); bar.appendChild(sendBtn);
-    document.body.appendChild(bar);
-    cloneInput.addEventListener('input', ()=>{ if(INPUT) INPUT.value = cloneInput.value; });
-    cloneInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); if(INPUT) INPUT.value = cloneInput.value; sendChat(); cloneInput.value=''; setTimeout(()=>cloneInput.focus(),50); } });
-    sendBtn.onclick = ()=>{ if(INPUT) INPUT.value = cloneInput.value; sendChat(); cloneInput.value=''; cloneInput.focus(); };
+    const chatWrap = document.getElementById('dtChatWrap');
+    if(!chatWrap) return;
+    // add minimize btn to header
+    let header = chatWrap.querySelector('div');
+    if(header && !document.getElementById('dtFsMinBtn')){
+      const minBtn = document.createElement('button');
+      minBtn.id='dtFsMinBtn';
+      minBtn.innerHTML='⌄';
+      minBtn.style.cssText='margin-left:auto;background:#1e1e1e;border:1px solid #333;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:none';
+      minBtn.onclick = exitFS;
+      header.appendChild(minBtn);
+    }
+    // create mobile bottom bar
+    if(!document.getElementById('dtMobileInputBar')){
+      const bar = document.createElement('div');
+      bar.id='dtMobileInputBar';
+      const cloneInput = document.createElement('input');
+      cloneInput.id='dtFsInputClone';
+      cloneInput.placeholder = INPUT?.placeholder || 'Message...';
+      const minBtn2 = document.createElement('button');
+      minBtn2.id='dtFsMinBtn2';
+      minBtn2.innerHTML='✕';
+      minBtn2.style.cssText='width:40px;height:40px;border-radius:50%;background:#232323;border:1px solid #333;color:#fff;cursor:pointer';
+      minBtn2.onclick = exitFS;
+      bar.appendChild(cloneInput);
+      bar.appendChild(document.getElementById('noticeBoardSend') ? document.getElementById('noticeBoardSend').cloneNode(true) : Object.assign(document.createElement('button'),{textContent:'➤'}));
+      bar.insertBefore(minBtn2, bar.firstChild);
+      document.body.appendChild(bar);
+      
+      // sync clone -> real
+      cloneInput.addEventListener('input', ()=>{ if(INPUT) INPUT.value = cloneInput.value; });
+      cloneInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); if(INPUT) INPUT.value = cloneInput.value; sendChat(); setTimeout(()=>{ cloneInput.value=''; cloneInput.focus(); },100); } });
+      bar.lastChild.onclick = ()=>{ if(INPUT) INPUT.value = cloneInput.value; sendChat(); cloneInput.value=''; cloneInput.focus(); };
+    }
   }
 
   function enterFS(){
-    if(!isMobile()) return; ensureFsUI();
-    bodyTop = window.scrollY; document.body.classList.add('dt-chat-fs'); document.body.style.top = `-${bodyTop}px`;
-    document.getElementById('dtChatWrap')?.classList.add('dt-fs-active');
-    document.getElementById('dtMobileInputBar')?.classList.add('active');
-    const clone = document.getElementById('dtFsInputClone'); if(clone){ clone.value = INPUT?.value||''; setTimeout(()=>{ clone.focus(); document.getElementById('dtChatList')?.scrollTo({top:99999, behavior:'auto'}); },150); }
+    if(!isMobile()) return;
+    const chatWrap = document.getElementById('dtChatWrap');
+    const mobBar = document.getElementById('dtMobileInputBar');
+    if(!chatWrap) return;
+    ensureFsUI();
+    
+    bodyTop = window.scrollY;
+    document.body.classList.add('dt-chat-fs');
+    document.body.style.top = `-${bodyTop}px`;
+    
+    chatWrap.classList.add('dt-fs-active');
+    document.getElementById('dtFsMinBtn').style.display='flex';
+    if(mobBar){
+      mobBar.classList.add('active');
+      const clone = document.getElementById('dtFsInputClone');
+      if(clone){ clone.value = INPUT?.value || ''; setTimeout(()=>clone.focus(), 150); }
+    }
+    // hide original input row on mobile to avoid double
     if(INPUT?.parentElement) INPUT.parentElement.style.display='none';
+    scrollToLatest();
   }
+
   function exitFS(){
-    document.body.classList.remove('dt-chat-fs'); document.body.style.top=''; window.scrollTo(0,bodyTop);
-    document.getElementById('dtChatWrap')?.classList.remove('dt-fs-active');
-    document.getElementById('dtMobileInputBar')?.classList.remove('active');
+    const chatWrap = document.getElementById('dtChatWrap');
+    const mobBar = document.getElementById('dtMobileInputBar');
+    document.body.classList.remove('dt-chat-fs');
+    document.body.style.top='';
+    window.scrollTo(0, bodyTop);
+    if(chatWrap) chatWrap.classList.remove('dt-fs-active');
+    if(mobBar) mobBar.classList.remove('active');
     if(INPUT?.parentElement) INPUT.parentElement.style.display='';
+    const minBtn = document.getElementById('dtFsMinBtn');
+    if(minBtn) minBtn.style.display='none';
   }
 
-  // === KEYBOARD MAGNET - THIS IS THE FIX ===
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', ()=>{
-      const bar=document.getElementById('dtMobileInputBar'); if(!bar||!bar.classList.contains('active')) return;
-      const diff = window.innerHeight - window.visualViewport.height;
-      bar.style.bottom = diff>60 ? diff+'px' : '0px';
-      // keep last message in view
-      setTimeout(()=>{ document.getElementById('dtChatList')?.scrollTo({top:999999, behavior:'auto'}); },50);
-    });
-  }
-
-  const iv = setInterval(()=>{ if(document.getElementById('dtChatWrap') && INPUT){ clearInterval(iv); ensureFsUI();
+  // hook input focus
+  const attach = () => {
+    if(!INPUT) return;
     INPUT.addEventListener('focus', ()=>{ if(isMobile()) enterFS(); }, {passive:true});
     INPUT.addEventListener('click', ()=>{ if(isMobile()) enterFS(); }, {passive:true});
-  }},500);
-  window.exitMobileChatFS = exitFS;
-})();// ============ MOBILE FULLSCREEN FIX - INPUT ON KEYBOARD ============
-(function(){
-  if(document.getElementById('dtMobileFSStyle')) return;
-  const style = document.createElement('style');
-  style.id='dtMobileFSStyle';
-  style.textContent = `
-  @media (max-width: 768px){
-    body.dt-chat-fs { overflow:hidden !important; position:fixed; width:100%; height:100dvh; }
-    #dtChatWrap.dt-fs-active{
-      position:fixed !important; inset:0 !important; z-index:9999999 !important;
-      height:100dvh !important; width:100% !important; margin:0 !important; border-radius:0 !important;
-      display:flex !important; flex-direction:column !important; background:#000 !important;
-    }
-    #dtChatWrap.dt-fs-active #dtChatList{ flex:1 !important; height:auto !important; padding-bottom:90px !important; overflow-y:auto !important; }
-    #dtMobileInputBar{
-      position:fixed; left:0; right:0; bottom:0; z-index:10000000;
-      background:#0a0a0a; border-top:1px solid #1e1e2e;
-      padding:8px 10px calc(8px + env(safe-area-inset-bottom));
-      display:none; gap:8px; align-items:center;
-      transition:bottom 0.15s ease-out;
-    }
-    #dtMobileInputBar.active{ display:flex; }
-    #dtMobileInputBar input{ flex:1; background:#151515; border:1px solid #282828; color:#fff; padding:12px 14px; border-radius:99px; font-size:16px !important; outline:none; }
-  }
-  `;
-  document.head.appendChild(style);
+    // prevent your hideChatSmooth from collapsing it
+    const origHide = window.hideChatSmooth || hideChatSmooth;
+    window.hideChatSmooth = function(){ if(document.getElementById('dtChatWrap')?.classList.contains('dt-fs-active')) return; origHide(); };
+  };
 
-  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-  let bodyTop = 0;
-
-  function ensureFsUI(){
-    if(document.getElementById('dtMobileInputBar')) return;
-    const bar = document.createElement('div'); bar.id='dtMobileInputBar';
-    const cloneInput = document.createElement('input'); cloneInput.id='dtFsInputClone'; cloneInput.placeholder = INPUT?.placeholder || 'Message...';
-    const minBtn = document.createElement('button'); minBtn.innerHTML='✕'; minBtn.style.cssText='width:36px;height:36px;border-radius:50%;background:#232323;border:1px solid #333;color:#fff;cursor:pointer'; minBtn.onclick = exitFS;
-    const sendBtn = document.createElement('button'); sendBtn.innerHTML='➤'; sendBtn.style.cssText='width:42px;height:42px;border-radius:50%;background:#0d3bff;color:#fff;border:none;font-weight:800;cursor:pointer';
-    bar.appendChild(minBtn); bar.appendChild(cloneInput); bar.appendChild(sendBtn);
-    document.body.appendChild(bar);
-    cloneInput.addEventListener('input', ()=>{ if(INPUT) INPUT.value = cloneInput.value; });
-    cloneInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); if(INPUT) INPUT.value = cloneInput.value; sendChat(); cloneInput.value=''; setTimeout(()=>cloneInput.focus(),50); } });
-    sendBtn.onclick = ()=>{ if(INPUT) INPUT.value = cloneInput.value; sendChat(); cloneInput.value=''; cloneInput.focus(); };
-  }
-
-  function enterFS(){
-    if(!isMobile()) return; ensureFsUI();
-    bodyTop = window.scrollY; document.body.classList.add('dt-chat-fs'); document.body.style.top = `-${bodyTop}px`;
-    document.getElementById('dtChatWrap')?.classList.add('dt-fs-active');
-    document.getElementById('dtMobileInputBar')?.classList.add('active');
-    const clone = document.getElementById('dtFsInputClone'); if(clone){ clone.value = INPUT?.value||''; setTimeout(()=>{ clone.focus(); document.getElementById('dtChatList')?.scrollTo({top:99999, behavior:'auto'}); },150); }
-    if(INPUT?.parentElement) INPUT.parentElement.style.display='none';
-  }
-  function exitFS(){
-    document.body.classList.remove('dt-chat-fs'); document.body.style.top=''; window.scrollTo(0,bodyTop);
-    document.getElementById('dtChatWrap')?.classList.remove('dt-fs-active');
-    document.getElementById('dtMobileInputBar')?.classList.remove('active');
-    if(INPUT?.parentElement) INPUT.parentElement.style.display='';
-  }
-
-  // === KEYBOARD MAGNET - THIS IS THE FIX ===
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', ()=>{
-      const bar=document.getElementById('dtMobileInputBar'); if(!bar||!bar.classList.contains('active')) return;
-      const diff = window.innerHeight - window.visualViewport.height;
-      bar.style.bottom = diff>60 ? diff+'px' : '0px';
-      // keep last message in view
-      setTimeout(()=>{ document.getElementById('dtChatList')?.scrollTo({top:999999, behavior:'auto'}); },50);
-    });
-  }
-
-  const iv = setInterval(()=>{ if(document.getElementById('dtChatWrap') && INPUT){ clearInterval(iv); ensureFsUI();
-    INPUT.addEventListener('focus', ()=>{ if(isMobile()) enterFS(); }, {passive:true});
-    INPUT.addEventListener('click', ()=>{ if(isMobile()) enterFS(); }, {passive:true});
-  }},500);
-  window.exitMobileChatFS = exitFS;
+  const iv = setInterval(()=>{ if(document.getElementById('dtChatWrap') && INPUT){ clearInterval(iv); ensureFsUI(); attach(); } }, 500);
+  window.addEventListener('resize', ()=>{ if(!isMobile()) exitFS(); });
+  window.exitMobileChatFS = exitFS; // global for you
 })();
-
 
 console.log("DopeAI NOTICE BOARD v5 PRO PST STYLE - playable + disappear on select");
