@@ -1,4 +1,4 @@
-// cc-charts.js - 750 LINES - FIXED TO TODAY 10TH + CURRENT TRACK CART ONLY + HALF-CURVE FIXED + SMALL GRAPHS REVENUE/ORDERS = D1 TOTAL
+// cc-charts.js - 750 LINES - FIXED TO TODAY 10TH + CURRENT TRACK CART ONLY + HALF-CURVE FIXED + SMALL GRAPHS REVENUE/ORDERS = D1 TOTAL + LIKES LIVE D1
 import { STATS_API, charts, currentBeatId, currentRange, setCurrentRange, setCurrentBeatId } from './cc-config.js';
 
 let sparklineCharts = {};
@@ -9,6 +9,8 @@ let lastGlobalRangeHash = '';
 let lastTrackHash = '';
 let liveCartCount = 0;
 let liveCartPerBeat = {}; // { beatId: count }
+let liveLikesCount = 0;
+let liveLikesPerBeat = {}; // { beatId: 1 }
 
 const tzOffset = new Date().getTimezoneOffset() * -1;
 
@@ -53,10 +55,8 @@ export async function initCharts() {
   });
 
   window.addEventListener('cc_downloaded', (e)=>{
-  console.log('[CHARTS] Download tracked', e.detail.beat_id);
-  // your existing poll will bump in 800ms
+    console.log('[CHARTS] Download tracked', e.detail.beat_id);
   });
-
 
   window.addEventListener('cc_cart_updated', (e) => {
     rebuildCartMapFromStorage();
@@ -68,6 +68,19 @@ export async function initCharts() {
     rebuildCartMapFromStorage();
     updateCartLineRealtime(null, e.detail?.total || 0);
     pushCartToSmallGraphs(e.detail?.total || 0);
+  });
+
+  // 🔥 NEW: LIKE EVENTS - SAME AS CART SYSTEM
+  window.addEventListener('cc_like_updated', (e) => {
+    rebuildLikesMapFromStorage();
+    updateLikesLineRealtime(e.detail?.beat_id, e.detail?.liked);
+    pushLikesToSmallGraphs(parseInt(localStorage.getItem('dopetone_likes_count') || '0') || 0);
+  });
+
+  window.addEventListener('cc_player_like_sync', (e) => {
+    rebuildLikesMapFromStorage();
+    updateLikesLineRealtime(e.detail?.beat_id, e.detail?.liked);
+    pushLikesToSmallGraphs(e.detail?.total || 0);
   });
 
   initMainChart();
@@ -82,6 +95,7 @@ export async function initCharts() {
   startLivePolling();
 
   rebuildCartMapFromStorage();
+  rebuildLikesMapFromStorage();
 }
 
 function rebuildCartMapFromStorage() {
@@ -95,6 +109,20 @@ function rebuildCartMapFromStorage() {
     });
   } catch(e){
     liveCartPerBeat = {};
+  }
+}
+
+function rebuildLikesMapFromStorage() {
+  try {
+    const likes = JSON.parse(localStorage.getItem('dopetone_likes') || '{}');
+    liveLikesPerBeat = {};
+    Object.keys(likes).forEach(id => {
+      liveLikesPerBeat[String(id)] = 1;
+    });
+    liveLikesCount = Object.keys(likes).length;
+  } catch(e){
+    liveLikesPerBeat = {};
+    liveLikesCount = 0;
   }
 }
 
@@ -124,7 +152,6 @@ function generateFullCurve(totalPlays, totalCarts, range = 'hour') {
   const now = new Date();
 
   if (range === 'hour') {
-    // Small graphs - 24h full curve
     for (let i = 23; i >= 0; i--) {
       const d = new Date(now);
       d.setHours(now.getHours() - i);
@@ -138,7 +165,6 @@ function generateFullCurve(totalPlays, totalCarts, range = 'hour') {
       }
     }
   } else {
-    // Big graph - FIX TODAY IS 10TH NOT 06 - show up to current date
     let days = range === 'day'? 7 : range === 'week'? 7 : range === 'month'? 30 : 7;
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now);
@@ -217,7 +243,6 @@ function extendHistoryToToday(points, range) {
       });
     }
   } else {
-    // day/week/month - ensure up to today 10th
     const lastDay = new Date(lastDate);
     lastDay.setHours(0,0,0,0);
     const today = new Date(now);
@@ -251,14 +276,12 @@ async function loadSmallGraphsHour() {
     let points = json.history || [];
     if (!points.length) {
       const padded = generateFullCurve(json.totalPlays || 0, json.cartItems || 0, 'hour');
-      // SMALL GRAPHS FIX ONLY - pass real totals from D1
-      updateSparklinesFromGlobal(padded, json.cartItems, json.totalRevenue, json.totalOrders);
+      updateSparklinesFromGlobal(padded, json.cartItems, json.totalRevenue, json.totalOrders, json.totalLikes);
       return;
     }
     points = extendHistoryToToday(points, 'hour');
     lastGlobalHourHash = hashData(points);
-    // SMALL GRAPHS FIX ONLY
-    updateSparklinesFromGlobal(points, json.cartItems, json.totalRevenue, json.totalOrders);
+    updateSparklinesFromGlobal(points, json.cartItems, json.totalRevenue, json.totalOrders, json.totalLikes);
     updateTotalsIfChanged(json);
   } catch(e){
     console.error('[CC Charts] Small hour load failed', e);
@@ -329,6 +352,88 @@ function pushCartToSmallGraphs(playerCount) {
   }
 }
 
+// 🔥 NEW: BIG GRAPH LIKE = CURRENT TRACK ONLY + D1 FIX
+function updateLikesLineRealtime(beatId, liked) {
+  if (!charts.trade) return;
+  const likesDataset = charts.trade.data.datasets[1];
+  if (!likesDataset || likesDataset.data.length === 0) return;
+
+  rebuildLikesMapFromStorage();
+  let data = [...likesDataset.data];
+  const lastIdx = data.length - 1;
+  if (lastIdx < 0) return;
+
+  if (currentBeatId) {
+    if (beatId && String(beatId)!== String(currentBeatId)) return;
+    const isLikedLive = !!liveLikesPerBeat[String(currentBeatId)];
+    let newVal = isLikedLive ? 1 : 0;
+    // Keep history, only D1 changes
+    if (data[lastIdx] !== newVal) {
+      data[lastIdx] = newVal;
+      // half-curve fix for like
+      if (data.length >= 2 && newVal === 1 && data[lastIdx-1] === 0) {
+        data[lastIdx-1] = 0;
+      }
+      likesDataset.data = data;
+      charts.trade.update('none');
+      console.log('[CC Charts] Big graph like = track', currentBeatId, 'liked', isLikedLive);
+    }
+  } else {
+    // All tracks view - D1 = max(api value, live total)
+    const apiVal = data[lastIdx] || 0;
+    const liveTotal = liveLikesCount || 0;
+    const newVal = Math.max(apiVal, liveTotal);
+    // Handle unlike - if liveTotal decreased, use liveTotal
+    const finalVal = liveTotal;
+    if (data[lastIdx] !== finalVal) {
+      data[lastIdx] = finalVal;
+      likesDataset.data = data;
+      charts.trade.update('none');
+    }
+  }
+
+  const likesEl = document.getElementById('totalLikes');
+  if (likesEl) {
+    const display = Math.max(parseInt(likesEl.textContent||'0'), liveLikesCount);
+    // for unlike we need exact
+    if (currentBeatId == null) {
+      if (parseInt(likesEl.textContent||'0') !== liveLikesCount && liveLikesCount >= 0) {
+        likesEl.textContent = String(Math.max(liveLikesCount, parseInt(likesEl.textContent||'0')));
+        // force to live count if unlike
+        if (liveLikesCount < parseInt(likesEl.textContent||'0')) {
+          // allow decrease only if we are in global view and we know total
+          likesEl.textContent = String(liveLikesCount);
+        }
+      }
+    }
+  }
+}
+
+function pushLikesToSmallGraphs(playerCount) {
+  const spark = sparklineCharts['likesSpark'];
+  if (!spark) return;
+  let data = [...spark.data.datasets[0].data];
+  if (data.length === 0) return;
+  const lastIdx = data.length - 1;
+  
+  rebuildLikesMapFromStorage();
+  // In small graph, we show trend - D1 = live total
+  const newVal = liveLikesCount;
+  const oldVal = data[lastIdx];
+
+  if (oldVal !== newVal) {
+    data[lastIdx] = newVal;
+    // create tiny ramp if history is flat but total exists
+    if (data.length >= 2 && data[lastIdx-1] === 0 && newVal > 0) {
+      data[lastIdx-1] = Math.max(0, newVal - 1);
+    }
+    spark.data.datasets[0].data = data;
+    spark.update('none');
+    updateSmallChangeBadge('likesChange', data);
+    console.log('[CC Charts] Small graph like D1 =', newVal);
+  }
+}
+
 function startLivePolling() {
   if (pollInterval) clearInterval(pollInterval);
   pollInterval = setInterval(async () => {
@@ -341,8 +446,7 @@ function startLivePolling() {
         const hHash = hashData(pts);
         if (hHash!== lastGlobalHourHash) {
           lastGlobalHourHash = hHash;
-          // SMALL GRAPHS FIX ONLY - include revenue/orders totals
-          updateSparklinesFromGlobal(pts, json.cartItems, json.totalRevenue, json.totalOrders);
+          updateSparklinesFromGlobal(pts, json.cartItems, json.totalRevenue, json.totalOrders, json.totalLikes);
           updateTotalsIfChanged(json);
         }
       }
@@ -381,9 +485,26 @@ function updateTotalsIfChanged(json) {
     const display = Math.max(json.cartItems||0, liveCartCount);
     if (cartEl.textContent!== String(display)) cartEl.textContent = display;
   }
+  const likesEl = document.getElementById('totalLikes');
+  if (likesEl) {
+    const display = Math.max(json.totalLikes||0, liveLikesCount);
+    // allow decrease on unlike in global view
+    if (liveLikesCount !== 0 || json.totalLikes === 0) {
+      // use live if exists
+      if (currentBeatId == null) {
+        if (parseInt(likesEl.textContent||'0') !== liveLikesCount && liveLikesCount >=0) {
+          // we keep max for init, but after init allow exact
+          likesEl.textContent = String(display);
+        }
+      }
+    } else {
+      set('totalLikes', json.totalLikes);
+    }
+  } else {
+    set('totalLikes', json.totalLikes);
+  }
   set('totalPlays', json.totalPlays);
   set('totalDownloads', json.totalDownloads);
-  set('totalLikes', json.totalLikes);
   set('totalOrders', json.totalOrders);
   const rev=document.getElementById('totalRevenue');
   if(rev){
@@ -535,10 +656,9 @@ function initMainChart() {
 }
 
 // ===== SMALL GRAPHS - ALWAYS 24 POINTS - FIXED REVENUE/ORDERS ONLY =====
-function updateSparklinesFromGlobal(points, cartOverride = null, revenueOverride = null, ordersOverride = null) {
+function updateSparklinesFromGlobal(points, cartOverride = null, revenueOverride = null, ordersOverride = null, likesOverride = null) {
   if (!points) return;
 
-  // ENSURE 24 POINTS - PAD WITH ZEROS IF LESS
   let last24 = points.slice(-24);
   if (last24.length < 24) {
     const padCount = 24 - last24.length;
@@ -550,24 +670,36 @@ function updateSparklinesFromGlobal(points, cartOverride = null, revenueOverride
     last24 = [...pad,...last24];
   }
 
+  rebuildLikesMapFromStorage();
+  rebuildCartMapFromStorage();
+
   const sparkData = {
     'playsSpark': last24.map(d => d.plays || 0),
-    'likesSpark': last24.map(d => d.likes || 0),
+    'likesSpark': last24.map((d,i) => {
+      let v = d.likes || 0;
+      if (i === last24.length - 1) {
+        // D1 = max(api, localStorage total, override)
+        v = Math.max(v, parseInt(likesOverride||0)||0, liveLikesCount||0);
+        // if unlike, use exact live count
+        if (liveLikesCount < v && liveLikesCount >=0) {
+          // keep live if we have it
+          v = liveLikesCount;
+        }
+      }
+      return v;
+    }),
     'downloadsSpark': last24.map(d => d.downloads || 0),
     'cartSpark': last24.map((d,i) => {
       let v = d.cart || 0;
       if (i === last24.length - 1) v = Math.max(v, parseInt(cartOverride||0)||0, liveCartCount||0);
       return v;
     }),
-    // FIXED: orders now = D1 totalOrders
     'ordersSpark': last24.map((d,i) => {
       let v = d.orders || 0;
       if (i === last24.length - 1) v = Math.max(v, parseInt(ordersOverride||0)||0);
-      // create tiny ramp so half-curve isn't flat when history has 0 but total exists
       if (v === 0 && ordersOverride > 0 && i >= last24.length - 3) v = Math.max(1, Math.floor(ordersOverride * 0.35));
       return v;
     }),
-    // FIXED: revenue now = D1 totalRevenue $4312.61
     'revenueSpark': last24.map((d,i) => {
       let v = d.revenue || 0;
       if (i === last24.length - 1) v = Math.max(v, Number(revenueOverride||0));
@@ -622,9 +754,18 @@ export async function loadTradeChartData(beatId = null, range = 'day', isPoll = 
         lastTrackHash=h;
       }
       rebuildCartMapFromStorage();
+      rebuildLikesMapFromStorage();
       charts.trade.data.labels = points.map(d => d.date);
       charts.trade.data.datasets[0].data = points.map(d => d.plays || 0);
-      charts.trade.data.datasets[1].data = points.map(d => d.likes || 0);
+      charts.trade.data.datasets[1].data = points.map((d,i) => {
+        let v = d.likes || 0;
+        if (i === points.length - 1) {
+          const liveForTrack = liveLikesPerBeat[String(beatId)] ? 1 : 0;
+          // D1 = current track like state (1/0) - if api already 1 keep 1
+          v = liveForTrack ? 1 : 0;
+        }
+        return v;
+      });
       charts.trade.data.datasets[2].data = points.map(d => d.downloads || 0);
       charts.trade.data.datasets[3].data = points.map((d,i) => {
         let v = d.cart || 0;
@@ -636,12 +777,14 @@ export async function loadTradeChartData(beatId = null, range = 'day', isPoll = 
       });
       if (points.length === 0) {
         const liveForTrack = liveCartPerBeat[String(beatId)] || 0;
-        if (liveForTrack > 0) {
+        const liveLike = liveLikesPerBeat[String(beatId)] || 0;
+        if (liveForTrack > 0 || liveLike > 0) {
           charts.trade.data.labels = [new Date().toISOString().split('T')[0]];
+          charts.trade.data.datasets[1].data = [liveLike];
           charts.trade.data.datasets[3].data = [liveForTrack];
         }
       }
-      if (titleEl) titleEl.textContent = `${json.beatTitle || 'Track #'+beatId} - ${range} - Cart: ${liveCartPerBeat[String(beatId)] || 0} (player) - up to ${new Date().toLocaleDateString()}`;
+      if (titleEl) titleEl.textContent = `${json.beatTitle || 'Track #'+beatId} - ${range} - Cart: ${liveCartPerBeat[String(beatId)] || 0} (player) Likes: ${liveLikesPerBeat[String(beatId)] ? 1 : 0} - up to ${new Date().toLocaleDateString()}`;
     } else {
       const res = await fetch(`${STATS_API}/api/stats/global?range=${range}&tz=${tzOffset}`);
       if (!res.ok) throw new Error('global fail');
@@ -653,9 +796,17 @@ export async function loadTradeChartData(beatId = null, range = 'day', isPoll = 
         if(h===lastGlobalRangeHash) return;
         lastGlobalRangeHash=h;
       }
+      rebuildCartMapFromStorage();
+      rebuildLikesMapFromStorage();
       charts.trade.data.labels = points.map(d => d.date);
       charts.trade.data.datasets[0].data = points.map(d => d.plays || 0);
-      charts.trade.data.datasets[1].data = points.map(d => d.likes || 0);
+      charts.trade.data.datasets[1].data = points.map((d,i) => {
+        let v = d.likes || 0;
+        if (i === points.length - 1) v = Math.max(v, json.totalLikes||0, liveLikesCount||0);
+        // if unlike, use live count
+        if (i === points.length - 1 && liveLikesCount < v) v = liveLikesCount;
+        return v;
+      });
       charts.trade.data.datasets[2].data = points.map(d => d.downloads || 0);
       charts.trade.data.datasets[3].data = points.map((d,i) => {
         let v = d.cart || 0;
@@ -759,5 +910,3 @@ window.addEventListener('beforeunload', ()=>{
 });
 
 window.clearTrackFilter=clearTrackFilter;
-
-// END 750 LINES

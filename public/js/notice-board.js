@@ -27,6 +27,111 @@ function getRealUser(){
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 (function(){ const m=document.querySelector('meta[name=viewport]'); if(m) m.content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"; })();
 
+
+
+const ADMIN_EMAILS = ['dopetone701@gmail.com','dope-tone-db-v2@admin','dopetone701@admin'];
+
+function isAdminUser(){
+  try{
+    let u = JSON.parse(localStorage.getItem('dope_user')||'null');
+    let email = (u?.email || localStorage.getItem('dt_email') || '').toLowerCase().trim();
+    return ADMIN_EMAILS.includes(email) || email.includes('dopetone701');
+  }catch{ return false; }
+}
+
+// V7.1 ADMIN CORRECTION PARSER - NEVER FORGET
+async function handleAdminCorrection(text){
+  if(!isAdminUser()) return false;
+  let t = text.trim();
+  let lower = t.toLowerCase();
+
+  // Commands:
+  // correct: when user says "edm" show "Guardian is EDM 150 BPM F Major $39.99"
+  // correct genre: trap -> when user says "drill trap" map to trap
+  // forget: word "yes" (removes polluted vocab)
+  // learn: when user says "future" genre is future bass
+
+  if(lower.startsWith('correct:') || lower.startsWith('learn:') || lower.startsWith('teach:') || lower.startsWith('fix:') || lower.startsWith('forget:')){
+    let payload = { user_text:'', genre:'', intent:'', response:'', by:'Dopetone701-admin' };
+
+    if(lower.startsWith('forget:')){
+      let word = t.split(':')[1]?.trim().toLowerCase();
+      if(word){
+        // Delete from vocab
+        try{
+          await fetch(`${AI_API_URL}/api/learn`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ uid:'admin', user_text:`forget ${word}`, intent:'forget', corrections:{forget:word} })
+          });
+          // Local
+          await fetch(`${AI_API_URL}/api/recommend?genre=${word}&limit=1`).catch(()=>{});
+          // Delete via D1 directly - call correction API that we use to delete
+          await fetch(`${AI_API_URL}/api/correction`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ user_text: word, genre:'', intent:'delete', response:'', by:'admin-forget' })
+          });
+          alert(`V7 FORGET: Removed "${word}" from vocab. Polluted EDM mapping gone.`);
+        }catch(e){ alert('forget error '+e.message); }
+      }
+      return true;
+    }
+
+    // Parse "correct: when user says X -> genre Y / show Z"
+    // Examples:
+    // correct: drill means trap beats
+    // correct: when user says "slime" genre is drill
+    // correct: when user says "yes" intent is buy_intent genre is last
+    let match = t.match(/when user says ["']?(.+?)["']? (?:genre is|means|show|is) (.+)/i) || t.match(/["']?(.+?)["']? (?:means|is) (.+)/i);
+    if(match){
+      let trigger = match[1].toLowerCase().trim();
+      let value = match[2].toLowerCase().trim();
+      payload.user_text = trigger;
+      payload.genre = value.includes('trap')?'trap': value.includes('drill')?'drill': value.includes('edm')?'edm': value.includes('afro')?'afrobeat': value.includes('amapiano')?'amapiano': value.includes('r&b')||value.includes('rnb')?'r&b': value;
+      payload.intent = 'need_beat';
+      payload.response = value;
+      if(!payload.genre) payload.genre = value.split(' ')[0];
+
+      try{
+        await fetch(`${AI_API_URL}/api/correction`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        // Also save to vocab with high weight
+        await fetch(`${AI_API_URL}/api/learn`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            uid: 'admin',
+            learned: [{text: trigger, intent:'need_beat', entities:{genre: payload.genre}, weight: 50}]
+          })
+        });
+        // Local cache
+        let cache = JSON.parse(localStorage.getItem('dt_corrections')||'[]');
+        cache.push({trigger, genre: payload.genre, at: Date.now()});
+        localStorage.setItem('dt_corrections', JSON.stringify(cache));
+
+        alert(`V7 LEARNED FOREVER: When user says "${trigger}" -> genre "${payload.genre}" saved to D1. Bot will never forget.`);
+      }catch(e){ alert('correction save error '+e.message); }
+      return true;
+    }
+    // Simple: "correct: trap = trap genre"
+    let simple = t.split(':')[1]?.trim();
+    if(simple){
+      payload.user_text = simple.split('=')[0]?.trim().toLowerCase() || simple;
+      payload.genre = simple.split('=')[1]?.trim().toLowerCase() || simple;
+      try{
+        await fetch(`${AI_API_URL}/api/correction`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        alert(`V7 LEARNED: "${payload.user_text}" -> ${payload.genre}`);
+      }catch{}
+      return true;
+    }
+    return true;
+  }
+  return false;
+}
+
 // ============ MODAL - SAME AS PST - PLAYABLE ============
 function ensureModal() {
   if (document.getElementById('dtBeatModal')) return;
@@ -243,22 +348,29 @@ async function loadProAI(){
 function renderRecommendationsPro(beats, genre, fallback=false, entities={}){
   const wrap = document.getElementById('dtRecommendWrap');
   if(!wrap ||!beats.length) return;
-  
-  // Make beats playable - push to virtual cache + active list
+
+  // V7.1 GUARD - Filter out wrong genre on client too
+  let askGenre = (genre||'').toLowerCase().trim();
+  if(askGenre && askGenre!=='recent'){
+    let filtered = beats.filter(b=> (b.genre||'').toLowerCase().includes(askGenre));
+    if(filtered.length) beats = filtered;
+    else {
+      // If worker gave us wrong genre, try to fix from cache
+      try{
+        let cache = JSON.parse(localStorage.getItem('dt_beats_cache')||'[]');
+        let fix = cache.filter(b=> (b.genre||'').toLowerCase().includes(askGenre));
+        if(fix.length) beats = fix.slice(0,3);
+      }catch{}
+    }
+  }
+
   activeBeatsList = beats;
   const virtualDropId = 'ai-drop-'+Date.now();
-  window._aiDropsCache.push({
-    id: virtualDropId,
-    promotion: { items: beats }
-  });
-
+  window._aiDropsCache.push({ id: virtualDropId, promotion: { items: beats } });
   wrap.style.display='block';
-  let fallbackHtml = '';// CAUTION REMOVED V6
-  
-  const big = beats[0];
-  const small = beats.slice(1);
-  
-  // EXACT SAME AS loadDrops() PST STYLE - image 2
+
+  let big = beats[0];
+  let small = beats.slice(1);
   wrap.innerHTML = `
     <div style="background:#121212;border:1px solid #282828;border-radius:20px;overflow:hidden">
       <div style="padding:10px 14px;background:#181818;border-bottom:1px solid #282828;display:flex;align-items:center;gap:8px;justify-content:space-between">
@@ -268,7 +380,6 @@ function renderRecommendationsPro(beats, genre, fallback=false, entities={}){
         </div>
         <button onclick="document.getElementById('dtRecommendWrap').style.display='none'" style="background:#232323;border:1px solid #333;color:#888;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px">✕</button>
       </div>
-      
       <div style="padding:14px;display:flex;gap:14px">
         <img src="${big.cover_url||big.cover||'images/default.png'}" onclick="openBeatCard('${big.id}','${virtualDropId}')" style="width:140px;height:140px;border-radius:14px;object-fit:cover;cursor:pointer;border:1px solid #282828;flex-shrink:0">
         <div style="flex:1;min-width:0">
@@ -277,19 +388,18 @@ function renderRecommendationsPro(beats, genre, fallback=false, entities={}){
               <span style="background:#232323;color:#b3b3b3;font-size:10px;padding:4px 8px;border-radius:99px">🎵 ${big.genre||genre||'Beat'} ${big.mood? '• '+big.mood : ''}</span>
               <span style="background:#232323;color:#b3b3b3;font-size:10px;padding:4px 8px;border-radius:99px">${big.bpm? big.bpm+' BPM' : 'DopeTone'} ${big.key? '• '+big.key : ''}</span>
               <span style="background:#0d3bff;color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:99px">$${big.display_price||big.basic_price||big.price||'9.99'}</span>
-              ${big.is_free? `<span style="background:#00c851;color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:99px">FREE</span>`:''}
           </div>
           <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
               ${small.map(b=>`<img src="${b.cover_url||b.cover}" onclick="openBeatCard('${b.id}','${virtualDropId}')" title="${b.title}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;cursor:pointer;border:1px solid #282828">`).join('')}
           </div>
         </div>
       </div>
-      
       <div style="padding:10px 14px;border-top:1px solid #1e1e2e;display:flex;flex-wrap:wrap;gap:8px" id="dtOptionsWrap"></div>
     </div>
   `;
   wrap.scrollIntoView({behavior:'smooth', block:'center'});
 }
+
 
 function renderOptionsPro(options){
   const wrap = document.getElementById('dtOptionsWrap');
@@ -418,6 +528,17 @@ async function sendChat(){
   if(isSending) return;
   const t=INPUT?.value.trim();
   if(!t) return;
+
+  // ADMIN CORRECTION CHECK - BEFORE ANYTHING
+  if(isAdminUser()){
+    let handled = await handleAdminCorrection(t);
+    if(handled){
+      INPUT.value='';
+      appendBubble({id:'admin-'+Date.now(), user_name:'Admin', user_id:'admin', message:'✅ Learned & saved to D1 forever. Test it now.', is_admin:1, created_at:new Date().toISOString()});
+      return;
+    }
+  }
+
   if(t===lastSentContent && (Date.now()-lastSentTime)<2000) return;
   isSending=true;
   const {name,email,uid}=getRealUser();

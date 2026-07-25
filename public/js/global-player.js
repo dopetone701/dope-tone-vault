@@ -1,31 +1,40 @@
 // ===============================
-// 🌍 GLOBAL PLAYER - DOPE TONE PRO - FULL LENGTH WITH DROP ZONE PLUG
+// 🌍 GLOBAL PLAYER - DOPE TONE PRO - GIANT FULL LENGTH + PERFECT HEART INJECTED
+// This is your GIANT file with the WORKING heart system from FINAL file injected
 // ===============================
-// ===============================
-// 🎯 STATS MANAGER - DOPETONE
-// ===============================
-
 const STATS_API = 'https://dopetone-stats.dopetone701.workers.dev';
-
 function logBeatEvent(beatId, eventType) {
   if (!beatId) return;
   fetch(`${STATS_API}/api/stats/event`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      beatId: parseInt(beatId),
-      eventType: eventType
-    })
+    body: JSON.stringify({ beatId: parseInt(beatId), eventType: eventType })
   }).catch(err => console.warn('[Stats] Event log failed:', err));
 }
-
 function logPlay(beatId) { logBeatEvent(beatId, 'play'); }
-function logLike(beatId, liked) { if (liked) logBeatEvent(beatId, 'like'); }
+function logLike(id, liked){ if(!liked) return; fetch(`${STATS_API}/api/stats/event`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({beatId:parseInt(id),eventType:'like'})}).catch(()=>{}) }
 function logDownload(beatId) { logBeatEvent(beatId, 'download'); }
 function logCart(beatId, added) { if (added) logBeatEvent(beatId, 'cart'); }
 
-document.addEventListener("DOMContentLoaded", () => {
+// ===== 🔥 WORKING HEART - SINGLE SOURCE OF TRUTH FROM YOUR PERFECT FILE =====
+function getLikes(){ try{ return JSON.parse(localStorage.getItem('dopetone_likes')||'{}') }catch(e){ return {} } }
+function saveLikes(m){ localStorage.setItem('dopetone_likes', JSON.stringify(m)); localStorage.setItem('dopetone_likes_count', String(Object.keys(m).length)); }
+function isLiked(id){ if(id==null) return false; const map=getLikes(); const s=String(id).trim(); return !!(map[s] || map[Number(s)]); }
+function toggleLikeStorage(id){
+  const m=getLikes(); const k=String(id).trim(); const n=Number(k);
+  const nowLiked = !(m[k] || m[n]);
+  if(nowLiked){ m[k]=Date.now(); m[n]=Date.now(); }
+  else { Object.keys(m).forEach(key=>{ if(String(key).trim()===k || Number(key)===n) delete m[key] }); }
+  saveLikes(m);
+  return { liked: nowLiked, map: m, total: Object.keys(m).length }
+}
+// aliases for old code
+function getLikesMap(){ return getLikes() }
+function saveLikesMap(m){ saveLikes(m) }
+function isBeatLiked(id){ return isLiked(id) }
+function setBeatLiked(id, liked){ if(liked){ const r=toggleLikeStorage(id); if(!r.liked){ toggleLikeStorage(id); return toggleLikeStorage(id).map } return r.map } else { const m=getLikes(); const k=String(id).trim(); const n=Number(k); if(m[k]||m[n]){ return toggleLikeStorage(id).map } return m } }
 
+document.addEventListener("DOMContentLoaded", () => {
   const audio = new Audio()
   audio.crossOrigin = "anonymous"
   audio.preload = 'auto'
@@ -33,7 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
   audio.mozPreservesPitch = false
   audio.webkitPreservesPitch = false
   audio.setAttribute('data-keep-alive', 'true')
-
   window.__DOPE_TONE_AUDIO__ = audio
   window._globalAudio = audio
 
@@ -57,7 +65,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTrackKey = null
   let currentWave = null
   let playedBeats = new Set();
-
   let isShuffled = localStorage.getItem('dt_shuffle') === 'true'
   let repeatMode = parseInt(localStorage.getItem('dt_repeat') || '0')
 
@@ -69,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevBtn = document.getElementById("gpPrev")
   const shuffleBtn = document.getElementById("gpShuffle")
   const repeatBtn = document.getElementById("gpRepeat")
-  const heartBtn = document.getElementById("gpHeart")
+  const heartBtn = document.getElementById("gpHeart") || document.getElementById("loveTrackBtn")
   const downloadBtn = document.getElementById("gpDownload")
   const bar = document.getElementById("gpBar")
   const title = document.getElementById("gpTitle")
@@ -78,20 +85,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const duration = document.getElementById("gpDuration")
   const addBtn = document.getElementById("gpAdd")
   const mpAdd = document.getElementById("mpAdd")
-
   const mpPlay = document.getElementById("mpPlay")
   const mpPrev = document.getElementById("mpPrev")
   const mpNext = document.getElementById("mpNext")
-  const mpHeart = document.getElementById("mpHeart")
+  const mpHeart = document.getElementById("mpHeart") || document.getElementById("mpLike")
   const mpDownload = document.getElementById("mpDownload")
-
   const gpPlayPath = document.getElementById("gpPlayPath")
   const mpPlayPath = document.getElementById("mpPlayPath")
 
-  if (!playBtn) {
-    console.error('[Dopetone] Global player missing #gpPlay button');
-    return;
-  }
+  if (!playBtn) { console.error('[Dopetone] Global player missing #gpPlay button'); return; }
 
   function applySavedState() {
     if (isShuffled) shuffleBtn?.classList.add("active")
@@ -109,10 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const coverUrl = song.cover_url || song.cover || song.artwork || song.image || song.img;
     if (coverUrl) {
       player.style.backgroundImage = `url('${coverUrl}')`;
-      if (coverImg) {
-        coverImg.src = coverUrl;
-        coverImg.alt = song.title || 'Album Cover';
-      }
+      if (coverImg) { coverImg.src = coverUrl; coverImg.alt = song.title || 'Album Cover'; }
       if (cover) cover.src = coverUrl;
     }
     if (titleEl) titleEl.textContent = song.title || 'Unknown';
@@ -179,9 +178,46 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function stopAll() {
-    document.querySelectorAll(".wave-row").forEach(row => {
-      if (row.__wave) row.__wave.seekTo(0)
-    })
+    document.querySelectorAll(".wave-row").forEach(row => { if (row.__wave) row.__wave.seekTo(0) })
+  }
+
+  // 🔥 PERFECT HEART SYNC - FROM YOUR WORKING FILE
+  function syncAll(beatId, forcedLiked){
+    const liked = forcedLiked !== undefined ? forcedLiked : isLiked(beatId);
+    const loveBtn=document.getElementById("loveTrackBtn")||document.getElementById("gpHeart");
+    const mpBtn=document.getElementById("mpLike")||document.getElementById("mpHeart");
+    [loveBtn, mpBtn].filter(Boolean).forEach(b=>{
+      b.classList.toggle('active', liked);
+      b.classList.toggle('liked', liked);
+      b.setAttribute('aria-pressed', String(liked));
+    });
+    const lh=document.querySelector("#loveTrackBtn .love-heart");
+    const mh=document.querySelector("#mpLike .love-heart");
+    const lt=document.querySelector("#loveTrackBtn .love-text");
+    if(lh) lh.textContent=liked?'♥':'♡';
+    if(mh) mh.textContent=liked?'♥':'♡';
+    if(lt) lt.textContent=liked?'LOVED':'LOVE IT';
+    try{
+      if(window.charts && window.charts.trade){
+        const ds = window.charts.trade.data.datasets[1];
+        if(ds && ds.data.length>0){
+          const curId = window.currentBeatId || window.__CURRENT_BEAT__?.id;
+          if(!curId || String(curId)===String(beatId)){
+            if(window.currentBeatId){
+              ds.data[ds.data.length-1] = liked ? 1 : 0;
+              window.charts.trade.update('none');
+            }
+          }
+        }
+      }
+    }catch(e){}
+    const map=getLikes();
+    const total=Object.keys(map).length;
+    window.dispatchEvent(new CustomEvent('cc_like_updated',{detail:{beat_id:beatId, beatId:beatId, liked, count:total, perBeat:map}}));
+    window.dispatchEvent(new CustomEvent('cc_player_like_sync',{detail:{total, beat_id:beatId, beatId:beatId, liked}}));
+    window.dispatchEvent(new CustomEvent('cc_like_change',{detail:{beat_id:beatId, liked}}));
+    const totalEl=document.getElementById('totalLikes'); if(totalEl) totalEl.textContent=String(total);
+    return liked;
   }
 
   function loadTrack(index, silent = false) {
@@ -200,34 +236,26 @@ document.addEventListener("DOMContentLoaded", () => {
     window.__CURRENT_LIST__ = currentListId
     window.__CURRENT_BEAT__ = beat
     updateMobilePlayerAura(beat)
-    const isLiked = beat.liked || false
-    ;[heartBtn, mpHeart].filter(Boolean).forEach(btn => {
-      btn.classList.toggle('active', isLiked)
-    })
-    if (!isNewTrack) {
-      audio.currentTime = 0
-    }
+    beat.liked = syncAll(beat.id)
+    if (!isNewTrack) { audio.currentTime = 0 }
     const row = document.querySelectorAll(".wave-row")[index]
     currentWave = row?.__wave || null
     if (!silent) {
-      requestIdleCallback(() => {
+      // keep original requestIdleCallback for GIANT compat
+      const cb = () => {
         document.dispatchEvent(new CustomEvent("trackChange", { detail: beat }))
-        localStorage.setItem('dt_cc_current', JSON.stringify({
-          id: beat.id,
-          title: beat.title,
-          cover: beat.cover_url,
-          list: currentListId,
-          timestamp: Date.now()
-        }))
+        localStorage.setItem('dt_cc_current', JSON.stringify({ id: beat.id, title: beat.title, cover: beat.cover_url, list: currentListId, timestamp: Date.now() }))
         window.dispatchEvent(new CustomEvent('cc_track_change', { detail: beat }))
+        window.dispatchEvent(new CustomEvent('cc_track_selected', { detail: { beatId: beat.id } }))
         if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
-            title: beat.title,
-            artist: 'Dope Tone',
+            title: beat.title, artist: 'Dope Tone',
             artwork: [{ src: beat.cover_url || 'images/logo.png', sizes: '512x512', type: 'image/png' }]
           })
         }
-      })
+        setTimeout(()=>syncAll(beat.id), 50)
+      };
+      if(window.requestIdleCallback) requestIdleCallback(cb); else setTimeout(cb,0);
     }
     if (wasPlaying || isNewTrack) {
       audio.play().catch(err => console.warn('[Player] Autoplay blocked:', err))
@@ -262,153 +290,100 @@ document.addEventListener("DOMContentLoaded", () => {
       loadTrack(index)
       currentTrackKey = newTrackKey
       window.__ACTIVE_TRACK_KEY__ = newTrackKey
-      if (window.location.pathname.includes('beats.html') && window.filterBeatsToSight) {
-        window.filterBeatsToSight([beat])
-      }
-      audio.play().catch(e => {
-        console.warn('[Player] Play failed:', e)
-        setTimeout(() => audio.play().catch(()=>{}), 100)
-      })
+      if (window.location.pathname.includes('beats.html') && window.filterBeatsToSight) window.filterBeatsToSight([beat])
+      audio.play().catch(e => { console.warn('[Player] Play failed:', e); setTimeout(() => audio.play().catch(()=>{}), 100) })
     })
   }
 
   const togglePlay = (e) => {
-    e?.preventDefault()
-    e?.stopPropagation()
-    if (!audio.src && playlist.length) {
-      playTrack(0, playlist, currentListId)
-      return
-    }
-    if (audio.paused) {
-      audio.play().catch(err => console.warn('[Player] Play failed:', err))
-    } else {
-      audio.pause()
-    }
+    e?.preventDefault(); e?.stopPropagation()
+    if (!audio.src && playlist.length) { playTrack(0, playlist, currentListId); return }
+    if (audio.paused) { audio.play().catch(err => console.warn('[Player] Play failed:', err)) }
+    else { audio.pause() }
   }
-
   playBtn.addEventListener('click', togglePlay)
   mpPlay?.addEventListener('click', togglePlay)
 
   const handleNext = (e) => {
-    e?.preventDefault()
-    e?.stopPropagation()
+    e?.preventDefault(); e?.stopPropagation()
     if (!playlist.length) return
-    if (repeatMode === 2) {
-      audio.currentTime = 0
-      audio.play()
-      return
-    }
+    if (repeatMode === 2) { audio.currentTime = 0; audio.play(); return }
     if (isShuffled) {
-      let randomIndex
-      do {
-        randomIndex = Math.floor(Math.random() * playlist.length)
-      } while (playlist.length > 1 && randomIndex === currentIndex)
+      let randomIndex; do { randomIndex = Math.floor(Math.random() * playlist.length) } while (playlist.length > 1 && randomIndex === currentIndex)
       currentIndex = randomIndex
     } else {
-      if (currentIndex === playlist.length - 1) {
-        if (repeatMode === 1) currentIndex = 0
-        else {
-          audio.pause()
-          return
-        }
-      } else {
-        currentIndex++
-      }
+      if (currentIndex === playlist.length - 1) { if (repeatMode === 1) currentIndex = 0; else { audio.pause(); return } }
+      else { currentIndex++ }
     }
     loadTrack(currentIndex)
     if (window.location.pathname.includes('beats.html')) {
       const currentBeat = playlist[currentIndex]
-      if (currentBeat && window.filterBeatsToSight) {
-        window.filterBeatsToSight([currentBeat])
-      }
+      if (currentBeat && window.filterBeatsToSight) window.filterBeatsToSight([currentBeat])
     }
     audio.play()
   }
-
   nextBtn.addEventListener('click', handleNext)
   mpNext && mpNext.addEventListener('click', handleNext)
 
   const handlePrev = (e) => {
-    e?.preventDefault()
-    e?.stopPropagation()
+    e?.preventDefault(); e?.stopPropagation()
     if (!playlist.length) return
-    if (audio.currentTime > 3) {
-      audio.currentTime = 0
-      return
-    }
+    if (audio.currentTime > 3) { audio.currentTime = 0; return }
     if (isShuffled) {
-      let randomIndex
-      do {
-        randomIndex = Math.floor(Math.random() * playlist.length)
-      } while (playlist.length > 1 && randomIndex === currentIndex)
+      let randomIndex; do { randomIndex = Math.floor(Math.random() * playlist.length) } while (playlist.length > 1 && randomIndex === currentIndex)
       currentIndex = randomIndex
-    } else {
-      currentIndex = (currentIndex - 1 + playlist.length) % playlist.length
-    }
+    } else { currentIndex = (currentIndex - 1 + playlist.length) % playlist.length }
     loadTrack(currentIndex)
     if (window.location.pathname.includes('beats.html')) {
       const currentBeat = playlist[currentIndex]
-      if (currentBeat && window.filterBeatsToSight) {
-        window.filterBeatsToSight([currentBeat])
-      }
+      if (currentBeat && window.filterBeatsToSight) window.filterBeatsToSight([currentBeat])
     }
     audio.play()
   }
-
   prevBtn.addEventListener('click', handlePrev)
   mpPrev && mpPrev.addEventListener('click', handlePrev)
 
-  const handleLike = async (e) => {
-    e?.preventDefault()
-    e?.stopPropagation()
-    const beat = playlist[currentIndex]
-    if (!beat) return
-    const btn = e.currentTarget
-    const isLiked =!btn.classList.contains('active')
-    btn.classList.toggle('active')
-    mpHeart?.classList.toggle('active', isLiked)
-    heartBtn?.classList.toggle('active', isLiked)
-    beat.liked = isLiked
-    logLike(beat.id, isLiked);
-    window.dispatchEvent(new CustomEvent('cc_like_change', { detail: { beat_id: beat.id, liked: isLiked } }));
+  // 🔥 WORKING HEART HANDLER FROM YOUR PERFECT FILE
+  function handleLike(e){
+    e?.preventDefault(); e?.stopPropagation(); e?.stopImmediatePropagation();
+    const beat=playlist[currentIndex]||window.__CURRENT_BEAT__; if(!beat){ console.warn('no beat'); return }
+    const res=toggleLikeStorage(beat.id);
+    beat.liked=res.liked;
+    syncAll(beat.id, res.liked);
+    const btn=document.getElementById("loveTrackBtn"); if(btn){ btn.classList.add('animate'); setTimeout(()=>btn.classList.remove('animate'),300) }
+    logLike(beat.id, res.liked);
+    console.log(`[FINAL] ${res.liked?'LIKED':'UNLIKED'} ${beat.id} total=${res.total} localStorage=${JSON.stringify(getLikes())}`);
   }
-
   heartBtn?.addEventListener('click', handleLike)
   mpHeart?.addEventListener('click', handleLike)
+  // UNKILLABLE DELEGATION FROM YOUR PERFECT FILE
+  document.addEventListener('click', (e)=>{ if(e.target.closest('#loveTrackBtn')||e.target.closest('#gpHeart')) handleLike(e); }, true);
+  document.addEventListener('click', (e)=>{ if(e.target.closest('#mpLike')||e.target.closest('#mpHeart')) handleLike(e); }, true);
+
+  window.refreshMobileHeart=()=>{ const cur=playlist[currentIndex]||window.__CURRENT_BEAT__; if(cur) syncAll(cur.id) }
+  window.isBeatLiked=isLiked;
+  window.toggleBeatLike=(id)=>{ const r=toggleLikeStorage(id); syncAll(id, r.liked); return r.liked }
 
   const handleDownload = async (e) => {
-    e?.preventDefault()
-    e?.stopPropagation()
-    const beat = playlist[currentIndex]
-    if (!beat) return
+    e?.preventDefault(); e?.stopPropagation()
+    const beat = playlist[currentIndex]; if (!beat) return
     logDownload(beat.id);
     window.dispatchEvent(new CustomEvent('cc_download', { detail: { beat_id: beat.id } }));
-    const a = document.createElement('a')
-    a.href = beat.mp3_url
-    a.download = `${beat.title}.mp3`
-    a.click()
+    const a = document.createElement('a'); a.href = beat.mp3_url; a.download = `${beat.title}.mp3`; a.click()
   }
-
   downloadBtn?.addEventListener('click', handleDownload)
   mpDownload?.addEventListener('click', handleDownload)
 
   const handleAddToCart = async (e) => {
-    e?.preventDefault()
-    e?.stopPropagation()
-    const beat = playlist[currentIndex]
-    if (!beat) return
-    const btn = e.currentTarget
-    const isAdded =!btn.classList.contains('active')
-    btn.classList.toggle('active')
-    mpAdd?.classList.toggle('active', isAdded)
-    addBtn?.classList.toggle('active', isAdded)
+    e?.preventDefault(); e?.stopPropagation()
+    const beat = playlist[currentIndex]; if (!beat) return
+    const btn = e.currentTarget; const isAdded =!btn.classList.contains('active')
+    btn.classList.toggle('active'); mpAdd?.classList.toggle('active', isAdded); addBtn?.classList.toggle('active', isAdded)
     logCart(beat.id, isAdded);
     window.dispatchEvent(new CustomEvent('cc_cart_change', { detail: { beat_id: beat.id, added: isAdded } }));
   }
-
   addBtn?.addEventListener('click', handleAddToCart)
   mpAdd?.addEventListener('click', handleAddToCart)
-
   shuffleBtn && shuffleBtn.addEventListener('click', toggleShuffle)
   repeatBtn && repeatBtn.addEventListener('click', cycleRepeat)
 
@@ -419,29 +394,19 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("gpPlay")?.setAttribute("title", isPlaying? "Pause" : "Play");
     document.getElementById("mpPlay")?.setAttribute("title", isPlaying? "Pause" : "Play");
     document.body.classList.toggle("playing", isPlaying)
-    // Sync Drop Zone beautiful modal icon
-    const dropIcon = document.getElementById('dtPlayIcon');
-    if(dropIcon) dropIcon.className = isPlaying? 'fa-solid fa-pause' : 'fa-solid fa-play';
+    const dropIcon = document.getElementById('dtPlayIcon'); if(dropIcon) dropIcon.className = isPlaying? 'fa-solid fa-pause' : 'fa-solid fa-play';
   }
 
   audio.addEventListener("play", () => {
     updatePlayIcons(true)
     const beatId = audio.dataset.beatId;
-    if (beatId &&!playedBeats.has(beatId)) {
-      logPlay(beatId);
-      playedBeats.add(beatId);
-    }
+    if (beatId &&!playedBeats.has(beatId)) { logPlay(beatId); playedBeats.add(beatId); }
     localStorage.setItem('dt_cc_playing', 'true');
     window.dispatchEvent(new CustomEvent('cc_player_state', { detail: { playing: true } }));
     if (currentListId === 'grid') {
       document.querySelectorAll(".grid-play").forEach((b, i) => {
-        if (i === currentIndex) {
-          b.classList.add("active")
-          b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="pointer-events:none;"><path d="${PAUSE_ICON}"/></svg>`
-        } else {
-          b.classList.remove("active")
-          b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="pointer-events:none;"><path d="${PLAY_ICON}"/></svg>`
-        }
+        if (i === currentIndex) { b.classList.add("active"); b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="pointer-events:none;"><path d="${PAUSE_ICON}"/></svg>` }
+        else { b.classList.remove("active"); b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="pointer-events:none;"><path d="${PLAY_ICON}"/></svg>` }
       })
     }
     document.dispatchEvent(new CustomEvent("playerPlay", { detail: { index: currentIndex, listId: currentListId, beat: playlist[currentIndex] } }))
@@ -452,94 +417,41 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem('dt_cc_playing', 'false');
     window.dispatchEvent(new CustomEvent('cc_player_state', { detail: { playing: false } }));
     if (currentListId === 'grid') {
-      document.querySelectorAll(".grid-play").forEach(b => {
-        b.classList.remove("active")
-        b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="pointer-events:none;"><path d="${PLAY_ICON}"/></svg>`
-      })
+      document.querySelectorAll(".grid-play").forEach(b => { b.classList.remove("active"); b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="pointer-events:none;"><path d="${PLAY_ICON}"/></svg>` })
     }
     document.dispatchEvent(new Event("playerPause"))
   })
 
-  function format(t) {
-    const m = Math.floor(t / 60)
-    const s = Math.floor(t % 60).toString().padStart(2, "0")
-    return m + ":" + s
-  }
-
+  function format(t) { const m = Math.floor(t / 60); const s = Math.floor(t % 60).toString().padStart(2, "0"); return m + ":" + s }
   audio.addEventListener("timeupdate", () => {
     if (!audio.duration) return
     const percent = audio.currentTime / audio.duration
     if (bar) bar.style.width = percent * 100 + "%"
     if (current) current.textContent = format(audio.currentTime)
     if (duration) duration.textContent = format(audio.duration)
-    const mpBar = document.getElementById("mpBar")
-    const mpCurrent = document.getElementById("mpCurrent")
-    const mpDuration = document.getElementById("mpDuration")
+    const mpBar = document.getElementById("mpBar"), mpCurrent = document.getElementById("mpCurrent"), mpDuration = document.getElementById("mpDuration")
     if (mpBar) mpBar.style.width = percent * 100 + "%"
     if (mpCurrent) mpCurrent.textContent = format(audio.currentTime)
     if (mpDuration) mpDuration.textContent = format(audio.duration)
     document.dispatchEvent(new CustomEvent("playerTimeUpdate", { detail: { index: currentIndex, percent, listId: currentListId } }))
   })
 
-  audio.addEventListener("ended", () => {
-    if (repeatMode === 2) {
-      audio.currentTime = 0
-      audio.play()
-    } else {
-      handleNext()
-    }
-  })
+  audio.addEventListener("ended", () => { if (repeatMode === 2) { audio.currentTime = 0; audio.play() } else { handleNext() } })
 
-  function setupSeeker(wrapId, barId) {
-    const progressWrap = document.getElementById(wrapId)
-    if (!progressWrap) return
-    function seekTo(clientX) {
-      if (!audio.duration) return
-      const rect = progressWrap.getBoundingClientRect()
-      const clickX = clientX - rect.left
-      const percent = Math.max(0, Math.min(1, clickX / rect.width))
-      audio.currentTime = percent * audio.duration
-    }
+  function setupSeeker(wrapId) {
+    const progressWrap = document.getElementById(wrapId); if (!progressWrap) return
+    function seekTo(clientX) { if (!audio.duration) return; const rect = progressWrap.getBoundingClientRect(); const clickX = clientX - rect.left; const percent = Math.max(0, Math.min(1, clickX / rect.width)); audio.currentTime = percent * audio.duration }
     progressWrap.addEventListener("click", e => seekTo(e.clientX))
-    progressWrap.addEventListener("touchstart", e => {
-      e.preventDefault()
-      seekTo(e.touches[0].clientX)
-    }, { passive: false })
+    progressWrap.addEventListener("touchstart", e => { e.preventDefault(); seekTo(e.touches[0].clientX) }, { passive: false })
     let dragging = false
-    progressWrap.addEventListener("mousedown", e => {
-      dragging = true
-      seekTo(e.clientX)
-    })
+    progressWrap.addEventListener("mousedown", e => { dragging = true; seekTo(e.clientX) })
     document.addEventListener("mouseup", () => { dragging = false })
-    document.addEventListener("mousemove", e => {
-      if (!dragging) return
-      seekTo(e.clientX)
-    })
-    progressWrap.addEventListener("touchmove", e => {
-      e.preventDefault()
-      seekTo(e.touches[0].clientX)
-    }, { passive: false })
+    document.addEventListener("mousemove", e => { if (!dragging) return; seekTo(e.clientX) })
+    progressWrap.addEventListener("touchmove", e => { e.preventDefault(); seekTo(e.touches[0].clientX) }, { passive: false })
   }
+  setupSeeker("gpProgress"); setupSeeker("mpProgress")
 
-  setupSeeker("gpProgress")
-  setupSeeker("mpProgress")
-
-  window.globalPlayer = {
-    play: playTrack,
-    toggle: togglePlay,
-    next: handleNext,
-    prev: handlePrev,
-    isPlaying: () =>!audio.paused,
-    loadTrack: loadTrack,
-    getCurrentIndex: () => currentIndex,
-    getCurrentList: () => currentListId,
-    getPlaylist: () => playlist,
-    toggleShuffle: toggleShuffle,
-    cycleRepeat: cycleRepeat,
-    getShuffleState: () => isShuffled,
-    getRepeatMode: () => repeatMode
-  }
-
+  window.globalPlayer = { play: playTrack, toggle: togglePlay, next: handleNext, prev: handlePrev, isPlaying: () =>!audio.paused, loadTrack: loadTrack, getCurrentIndex: () => currentIndex, getCurrentList: () => currentListId, getPlaylist: () => playlist, toggleShuffle: toggleShuffle, cycleRepeat: cycleRepeat, getShuffleState: () => isShuffled, getRepeatMode: () => repeatMode }
   window.playBeat = (id) => {
     const idx = playlist.findIndex(b=> String(b.id)===String(id));
     if(idx>=0) playTrack(idx, [], currentListId);
@@ -548,16 +460,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const b = all.find(x=> String(x.id)===String(id));
       if(b) playTrack(0, [b], 'single');
       else {
-        // Also search in drop cache
         const drops = window._dropsCache || [];
         for(const d of drops){
           const found = (d.promotion?.items||[]).find(x=> String(x.id)===String(id));
-          if(found){
-            const list = d.promotion.items.map(it=>({id:it.id, title:it.title, cover_url:it.cover_url, mp3_url:it.audio_url||it.mp3_url||it.audio}));
-            const fIdx = list.findIndex(x=> String(x.id)===String(id));
-            playTrack(fIdx>=0? fIdx:0, list, 'drop-zone');
-            break;
-          }
+          if(found){ const list = d.promotion.items.map(it=>({id:it.id, title:it.title, cover_url:it.cover_url, mp3_url:it.audio_url||it.mp3_url||it.audio})); const fIdx = list.findIndex(x=> String(x.id)===String(id)); playTrack(fIdx>=0? fIdx:0, list, 'drop-zone'); break; }
         }
       }
     }
@@ -566,183 +472,86 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (window.location.pathname.includes('playlists.html')) {
     const recentBeats = JSON.parse(localStorage.getItem('recent_played') || '[]')
-    if (recentBeats.length &&!window.__CURRENT_BEAT__) {
-      playlist = recentBeats
-      originalPlaylist = [...recentBeats]
-      currentListId = 'recent'
-      loadTrack(0, true)
-    }
+    if (recentBeats.length &&!window.__CURRENT_BEAT__) { playlist = recentBeats; originalPlaylist = [...recentBeats]; currentListId = 'recent'; loadTrack(0, true) }
   }
-
   if (window.location.pathname.includes('beats.html')) {
     const armRandomBeat = () => {
       if (window.store?.beats?.length &&!window.__CURRENT_BEAT__) {
         const randomIndex = Math.floor(Math.random() * window.store.beats.length)
-        playlist = [...window.store.beats]
-        originalPlaylist = [...window.store.beats]
-        currentListId = 'all-beats'
-        loadTrack(randomIndex, true)
+        playlist = [...window.store.beats]; originalPlaylist = [...window.store.beats]; currentListId = 'all-beats'; loadTrack(randomIndex, true)
       }
     }
-    if (window.store?.loaded) {
-      armRandomBeat()
-    } else {
-      const checkStore = setInterval(() => {
-        if (window.store?.loaded) {
-          clearInterval(checkStore)
-          armRandomBeat()
-        }
-      }, 50)
-    }
+    if (window.store?.loaded) { armRandomBeat() }
+    else { const checkStore = setInterval(() => { if (window.store?.loaded) { clearInterval(checkStore); armRandomBeat() } }, 50) }
   }
 
-  // === DT DROP ZONE - CLICK COVER ON PLAYER OPENS YOUR BEAUTIFUL MODAL ===
-  const gpCoverEl = document.getElementById('gpCover');
-  const mpCoverEl = document.getElementById('mpCover');
-  const gpTitleEl = document.getElementById('gpTitle');
-
+  const gpCoverEl = document.getElementById('gpCover'); const mpCoverEl = document.getElementById('mpCover'); const gpTitleEl = document.getElementById('gpTitle');
   function handlePlayerCoverClick(e){
-    const beat = window.__CURRENT_BEAT__;
-    if(!beat) return;
-    e.stopPropagation();
-    // If this beat exists in drop zone cache, open with dropId for full list
-    const drops = window._dropsCache || [];
-    let foundDropId = null;
-    for(const d of drops){
-      if((d.promotion?.items||[]).some(b=> String(b.id)===String(beat.id))){
-        foundDropId = d.id;
-        break;
-      }
-    }
-    if(foundDropId && window.openBeatCard){
-      window.openBeatCard(String(beat.id), foundDropId);
-    } else if(window.openDropBeatModal){
-      window.openDropBeatModal(String(beat.id));
-    } else if(window.openBeatCard){
-      window.openBeatCard(String(beat.id), null);
-    }
+    const beat = window.__CURRENT_BEAT__; if(!beat) return; e.stopPropagation();
+    const drops = window._dropsCache || []; let foundDropId = null;
+    for(const d of drops){ if((d.promotion?.items||[]).some(b=> String(b.id)===String(beat.id))){ foundDropId = d.id; break; } }
+    if(foundDropId && window.openBeatCard){ window.openBeatCard(String(beat.id), foundDropId); }
+    else if(window.openDropBeatModal){ window.openDropBeatModal(String(beat.id)); }
+    else if(window.openBeatCard){ window.openBeatCard(String(beat.id), null); }
   }
+  if(gpCoverEl){ gpCoverEl.style.cursor='pointer'; gpCoverEl.title='Open Drop Card'; gpCoverEl.addEventListener('click', handlePlayerCoverClick); }
+  if(mpCoverEl){ mpCoverEl.style.cursor='pointer'; mpCoverEl.addEventListener('click', handlePlayerCoverClick); }
+  if(gpTitleEl){ gpTitleEl.style.cursor='pointer'; gpTitleEl.addEventListener('click', handlePlayerCoverClick); }
 
-  if(gpCoverEl){
-    gpCoverEl.style.cursor='pointer';
-    gpCoverEl.title='Open Drop Card';
-    gpCoverEl.addEventListener('click', handlePlayerCoverClick);
-  }
-  if(mpCoverEl){
-    mpCoverEl.style.cursor='pointer';
-    mpCoverEl.addEventListener('click', handlePlayerCoverClick);
-  }
-  // Also title click opens modal
-  if(gpTitleEl){
-    gpTitleEl.style.cursor='pointer';
-    gpTitleEl.addEventListener('click', handlePlayerCoverClick);
-  }
-
-  console.log('[Dopetone] Global Player loaded. Drop Zone plugged - click cover opens beautiful modal, toggle linked.');
+  setTimeout(()=>{ try{ const s=JSON.parse(localStorage.getItem('dt_cc_current')||'null'); if(s?.id) syncAll(s.id); }catch(e){} },300);
+  console.log('[Dopetone] GIANT + PERFECT HEART - FULL LENGTH READY - D1 + localStorage synced');
 })
 
 function initMobilePlayer() {
-  const globalPlayer = document.getElementById('globalPlayerUI')
-  const mobilePlayer = document.getElementById('mobilePlayer')
-  const mpClose = document.getElementById('mpClose')
+  const globalPlayer = document.getElementById('globalPlayerUI'), mobilePlayer = document.getElementById('mobilePlayer'), mpClose = document.getElementById('mpClose')
   if (!globalPlayer ||!mobilePlayer) return
   globalPlayer.addEventListener('click', (e) => {
     if (e.target.closest('.gp-controls button')) return
     if (e.target.closest('#gpAdd')) return
+    if (e.target.closest('#loveTrackBtn')) return
     if (window.innerWidth > 768) return
     openMobilePlayer()
   })
   mpClose?.addEventListener('click', closeMobilePlayer)
-  let startY = 0
-  let isDragging = false
-  let startTime = 0
+  let startY = 0, isDragging = false, startTime = 0
   mobilePlayer.addEventListener('touchstart', (e) => {
     if (e.target.closest('#mpControls') || e.target.closest('#mpProgress')) return
-    startY = e.touches[0].clientY
-    startTime = Date.now()
-    isDragging = true
-    mobilePlayer.style.transition = 'none'
+    startY = e.touches[0].clientY; startTime = Date.now(); isDragging = true; mobilePlayer.style.transition = 'none'
   }, { passive: true })
   mobilePlayer.addEventListener('touchmove', (e) => {
     if (!isDragging) return
-    const currentY = e.touches[0].clientY
-    const diff = currentY - startY
-    if (diff > 0) {
-      e.preventDefault()
-      const opacity = Math.max(0.3, 1 - (diff / 400))
-      mobilePlayer.style.transform = `translateY(${diff}px)`
-      mobilePlayer.style.opacity = opacity
-    }
+    const currentY = e.touches[0].clientY; const diff = currentY - startY
+    if (diff > 0) { e.preventDefault(); const opacity = Math.max(0.3, 1 - (diff / 400)); mobilePlayer.style.transform = `translateY(${diff}px)`; mobilePlayer.style.opacity = opacity }
   }, { passive: false })
   mobilePlayer.addEventListener('touchend', (e) => {
     if (!isDragging) return
     isDragging = false
-    const currentY = e.changedTouches[0].clientY
-    const diff = currentY - startY
-    const velocity = diff / (Date.now() - startTime)
+    const currentY = e.changedTouches[0].clientY; const diff = currentY - startY; const velocity = diff / (Date.now() - startTime)
     mobilePlayer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
-    if (diff > 120 || velocity > 0.5) {
-      closeMobilePlayer()
-    } else {
-      mobilePlayer.style.transform = 'translateY(0)'
-      mobilePlayer.style.opacity = '1'
-    }
+    if (diff > 120 || velocity > 0.5) { closeMobilePlayer() }
+    else { mobilePlayer.style.transform = 'translateY(0)'; mobilePlayer.style.opacity = '1' }
   })
 }
-
 function openMobilePlayer() {
-  const mobilePlayer = document.getElementById('mobilePlayer')
-  if (!mobilePlayer) return
-  syncPlayerData()
-  mobilePlayer.classList.add('active')
-  document.body.style.overflow = 'hidden'
-  mobilePlayer.style.transform = 'translateY(0)'
-  mobilePlayer.style.opacity = '1'
-  mobilePlayer.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease'
+  const mobilePlayer = document.getElementById('mobilePlayer'); if (!mobilePlayer) return
+  syncPlayerData(); mobilePlayer.classList.add('active'); document.body.style.overflow = 'hidden'
+  mobilePlayer.style.transform = 'translateY(0)'; mobilePlayer.style.opacity = '1'; mobilePlayer.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease'
 }
-
 function closeMobilePlayer() {
-  const mobilePlayer = document.getElementById('mobilePlayer')
-  if (!mobilePlayer) return
-  mobilePlayer.classList.remove('active')
-  mobilePlayer.style.transform = 'translateY(100%)'
-  mobilePlayer.style.opacity = '0'
-  document.body.style.overflow = ''
-  setTimeout(() => {
-    mobilePlayer.style.transform = ''
-    mobilePlayer.style.opacity = ''
-    mobilePlayer.style.transition = ''
-  }, 400)
+  const mobilePlayer = document.getElementById('mobilePlayer'); if (!mobilePlayer) return
+  mobilePlayer.classList.remove('active'); mobilePlayer.style.transform = 'translateY(100%)'; mobilePlayer.style.opacity = '0'; document.body.style.overflow = ''
+  setTimeout(() => { mobilePlayer.style.transform = ''; mobilePlayer.style.opacity = ''; mobilePlayer.style.transition = '' }, 400)
 }
-
 function syncPlayerData() {
-  const gpCover = document.getElementById('gpCover')
-  const mpCover = document.getElementById('mpCover')
+  const gpCover = document.getElementById('gpCover'), mpCover = document.getElementById('mpCover')
   if (gpCover && mpCover) mpCover.src = gpCover.src
-  const gpTitle = document.getElementById('gpTitle')
-  const mpTitle = document.getElementById('mpTitle')
+  const gpTitle = document.getElementById('gpTitle'), mpTitle = document.getElementById('mpTitle')
   if (gpTitle && mpTitle) mpTitle.textContent = gpTitle.textContent
   const audio = window.__DOPE_TONE_AUDIO__
-  if (audio) {
-    const isPlaying =!audio.paused
-    const PLAY_ICON = "M8 5v14l11-7z"
-    const PAUSE_ICON = "M6 19h4V5H6v14zm8-14v14h4V5h-4z"
-    const icon = isPlaying? PAUSE_ICON : PLAY_ICON
-    document.getElementById("mpPlayPath")?.setAttribute('d', icon)
-  }
-  const gpBar = document.getElementById('gpBar')
-  const mpBar = document.getElementById('mpBar')
-  if (gpBar && mpBar) mpBar.style.width = gpBar.style.width
-  const gpCurrent = document.getElementById('gpCurrent')
-  const mpCurrent = document.getElementById('mpCurrent')
-  if (gpCurrent && mpCurrent) mpCurrent.textContent = gpCurrent.textContent
-  const gpDuration = document.getElementById('gpDuration')
-  const mpDuration = document.getElementById('mpDuration')
-  if (gpDuration && mpDuration) mpDuration.textContent = gpDuration.textContent
-  const mobilePlayer = document.getElementById('mobilePlayer')
-  if (mobilePlayer && gpCover) {
-    mobilePlayer.style.backgroundImage = `url(${gpCover.src})`
-  }
+  if (audio) { const isPlaying =!audio.paused; const PLAY_ICON = "M8 5v14l11-7z", PAUSE_ICON = "M6 19h4V5H6v14zm8-14v14h4V5h-4z", icon = isPlaying? PAUSE_ICON : PLAY_ICON; document.getElementById("mpPlayPath")?.setAttribute('d', icon) }
+  const gpBar = document.getElementById('gpBar'), mpBar = document.getElementById('mpBar'); if (gpBar && mpBar) mpBar.style.width = gpBar.style.width
+  const gpCurrent = document.getElementById('gpCurrent'), mpCurrent = document.getElementById('mpCurrent'); if (gpCurrent && mpCurrent) mpCurrent.textContent = gpCurrent.textContent
+  const gpDuration = document.getElementById('gpDuration'), mpDuration = document.getElementById('mpDuration'); if (gpDuration && mpDuration) mpDuration.textContent = gpDuration.textContent
+  const mobilePlayer = document.getElementById('mobilePlayer'); if (mobilePlayer && gpCover) { mobilePlayer.style.backgroundImage = `url(${gpCover.src})` }
 }
-
 document.addEventListener('DOMContentLoaded', initMobilePlayer)
