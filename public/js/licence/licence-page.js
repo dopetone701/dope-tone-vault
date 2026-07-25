@@ -304,10 +304,70 @@ function setupPlayer(){
 }
 
 function setupLike(){
-    const likeBtn = safeGet("likeBtn"); const heartIcon = safeGet("heartIcon"); if(!likeBtn||!heartIcon) return;
-    function updateLikeUI(){ const beat=window.__CURRENT_BEAT__; if(!beat) return; const playlists=window.getPlaylists?.()||[]; const liked=playlists.find(p=>p.isLiked); const isLiked=liked?.beats?.some(b=>b.id===beat.id); const btn=safeGet('likeBtn'); if(isLiked){ btn.classList.add('liked'); heartIcon.setAttribute('fill','currentColor'); } else { btn.classList.remove('liked'); heartIcon.setAttribute('fill','none'); } }
-    likeBtn.onclick = () => { const beat=window.__CURRENT_BEAT__; if(!beat) return; window.toggleBeatLike?.(); updateLikeUI(); }; window.updateLicenceLikeUI = updateLikeUI;
+    const likeBtn = safeGet("likeBtn");
+    const heartIcon = safeGet("heartIcon");
+    const likeCountEl = safeGet("likeCount");
+    if(!likeBtn||!heartIcon) return;
+
+    function getLikes(){ try{ return JSON.parse(localStorage.getItem('dopetone_likes')||'{}') }catch(e){ return {} } }
+    function isLikedLocal(id){ if(!id) return false; const m=getLikes(); const s=String(id).trim(); return !!(m[s] || m[Number(s)]); }
+    function toggleLocal(id){
+      if(window.toggleBeatLike) return window.toggleBeatLike(id);
+      const m=getLikes(); const s=String(id).trim(); const n=Number(s);
+      const now=! (m[s] || m[n]);
+      if(now){ m[s]=Date.now(); m[n]=Date.now(); } else { Object.keys(m).forEach(k=>{ if(String(k).trim()===s || Number(k)===n) delete m[k] }) }
+      localStorage.setItem('dopetone_likes', JSON.stringify(m));
+      localStorage.setItem('dopetone_likes_count', String(Object.keys(m).length));
+      const total=Object.keys(m).length;
+      window.dispatchEvent(new CustomEvent('cc_like_updated',{detail:{beat_id:id, beatId:id, liked:now, count:total, perBeat:m}}));
+      window.dispatchEvent(new CustomEvent('cc_player_like_sync',{detail:{total, beat_id:id, beatId:id, liked:now}}));
+      return now;
+    }
+
+    function updateLikeUI(){
+        const beat=window.__CURRENT_BEAT__ || window.currentBeat; if(!beat) return;
+        const liked=isLikedLocal(beat.id);
+        const btn=safeGet('likeBtn'); const icon=safeGet('heartIcon'); const countEl=safeGet('likeCount');
+        if(!btn||!icon) return;
+        if(liked){
+            btn.classList.add('liked','active');
+            icon.setAttribute('fill','currentColor');
+            icon.style.color='#ff3040'; btn.style.color='#ff3040';
+            if(countEl) countEl.textContent = originalLikeCount + 1;
+        } else {
+            btn.classList.remove('liked','active');
+            icon.setAttribute('fill','none'); icon.style.color=''; btn.style.color='';
+            if(countEl) countEl.textContent = originalLikeCount;
+        }
+    }
+
+    updateLikeUI();
+    setTimeout(updateLikeUI, 500);
+
+    window.addEventListener('cc_like_updated', (e)=>{
+      const d=e.detail||{}; const curId=window.__CURRENT_BEAT__?.id || window.currentBeat?.id;
+      if(String(d.beat_id)===String(curId) || String(d.beatId)===String(curId)) updateLikeUI();
+    });
+
+    likeBtn.onclick = () => {
+        const beat=window.__CURRENT_BEAT__ || window.currentBeat; if(!beat) return;
+        const nowLiked=toggleLocal(beat.id);
+        if(window.currentBeat) window.currentBeat.liked=nowLiked;
+        if(window.__CURRENT_BEAT__) window.__CURRENT_BEAT__.liked=nowLiked;
+        updateLikeUI();
+        window.refreshMobileHeart?.();
+        const countEl=safeGet('likeCount');
+        if(countEl){
+          countEl.style.transform='scale(1.3)'; countEl.style.color='#ff3040';
+          setTimeout(()=>{ countEl.style.transform='scale(1)'; countEl.style.color=''; },200);
+        }
+        showToast(nowLiked? 'Added to liked ♥ +1' : 'Removed -1');
+        try{ fetch(`${STATS_API}/api/stats/event`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({beatId: parseInt(beat.id), eventType:'like'}) }).catch(()=>{}); }catch{}
+    };
+    window.updateLicenceLikeUI = updateLikeUI;
 }
+
+
 
 function setupAddToCart(){
     const addBtn = safeGet("addBtn"); if(!addBtn) return;
@@ -337,7 +397,22 @@ async function switchActiveBeat(beat){
     if(fixed.audio){ audio = new Audio(fixed.audio); } renderCartBeatRow(); renderSimilarTracks([fixed]);
 }
 
-async function loadGlobalLikeCount(beatId){ if(!beatId) return; try{ const res=await fetch(`${API_URL}/beats`); const beats=await res.json(); const beat=beats.find(b=>b.id==beatId); const el=safeGet("likeCount"); if(el) el.textContent=beat?.like_count||0; }catch{} }
+let originalLikeCount = 0; // keep API count
+
+async function loadGlobalLikeCount(beatId){
+    if(!beatId) return;
+    try{
+        const res=await fetch(`${API_URL}/beats`);
+        const beats=await res.json();
+        const beat=beats.find(b=> String(b.id)===String(beatId));
+        originalLikeCount = beat?.like_count || 0;
+        const el=safeGet("likeCount");
+        if(el){
+            const isLiked = (()=>{ try{ const m=JSON.parse(localStorage.getItem('dopetone_likes')||'{}'); return !!(m[String(beatId)]||m[Number(beatId)]); }catch{return false} })();
+            el.textContent = isLiked ? originalLikeCount + 1 : originalLikeCount;
+        }
+    }catch{}
+}
 
 function updateSelectedBar(){
     const selectedWrap = document.querySelector(".selected-licence"); if(!selectedWrap) return;
