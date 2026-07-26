@@ -37,13 +37,13 @@
 
 <script>
 const PAYPAL_WORKER_URL = 'https://pay-pal-api.dopetone701.workers.dev';
+const STATS_API = 'https://dopetone-stats.dopetone701.workers.dev';
 // === AUTO DETECT LOCAL VS LIVE ===
 const VAULT_URL = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
   ? './vault.html'
   : 'https://dopetonevault.com/vault.html';
 
 const params = new URLSearchParams(window.location.search);
-// PayPal sends ?token=ORDER_ID - we support all
 const sessionId = params.get('token') || params.get('paypal_order_id') || params.get('session_id') || params.get('order_id');
 const isFree = params.get('free') === '1';
 
@@ -57,12 +57,40 @@ const enterVaultBtn = document.getElementById('enterVaultBtn');
 const safeParse = (k,f)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):f }catch{ return f } };
 const shippedKey = (sid) => "dopetone_shipped_" + sid;
 
-function clearAllLocalHistory(sid){
+async function clearAllLocalHistory(sid, beatIds = []){
+  // 🔥 D1 GLOBAL DELETE - CART + LIKES SPY RESET
+  try{
+    const anon_id = localStorage.getItem('dopetone_anon_id') || 'anon';
+    const anon_id2 = localStorage.getItem('dopetone_anon_id');
+    const userObj = safeParse('dopetone_user', null) || safeParse('user', null);
+    const user_id = userObj?.id || localStorage.getItem('dopetone_user_id') || anon_id;
+    const cartIds = safeParse("dopetone_cart", []).map(b=>parseInt(b.id)).filter(Boolean);
+    const histIds = safeParse("dopetone_history", []).map(h=>parseInt(h.beat_id)).filter(Boolean);
+    const passedIds = (beatIds||[]).map(n=>parseInt(n)).filter(Boolean);
+    const allIds = [...new Set([...cartIds, ...histIds, ...passedIds])];
+    
+    if(allIds.length){
+      await fetch(`${STATS_API}/api/stats/untrack`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ beat_ids: allIds, event_type:'checkout', user_id, anon_id })
+      }).catch(()=>{});
+      console.log('[SUCCESS] D1 carts deleted for', allIds);
+    }
+  }catch(e){ console.log('untrack fail', e); }
+
   localStorage.setItem("dopetone_history", "[]");
   localStorage.removeItem('dopetone_cart');
   localStorage.removeItem('dopetone_licences');
   localStorage.removeItem('dopetone_pending_checkout');
-  try{ window.dispatchEvent(new Event('storage')); }catch{}
+  localStorage.setItem('dopetone_cart_count', '0');
+  localStorage.setItem('dopetone_cart_count', '0');
+  
+  try{
+    window.dispatchEvent(new CustomEvent('cc_cart_removed', { detail:{ beat_ids: beatIds } }));
+    window.dispatchEvent(new CustomEvent('cc_checkout_completed', { detail:{ beat_ids: beatIds } }));
+    window.dispatchEvent(new Event('storage'));
+  }catch{}
 }
 
 async function verifyViaWorker(sid){
@@ -78,7 +106,8 @@ async function init(){
   if(isFree){
     titleEl.textContent="Download Ready"; subEl.innerHTML="FREE beat unlocked.<br/>Check your downloads.";
     amountEl.textContent="FREE"; detailsEl.style.display='block'; detailsEl.innerHTML="Your FREE licence is ready.";
-    clearAllLocalHistory('free_'+Date.now()); statusEl.className="ok"; statusEl.textContent="✅ Cart cleared";
+    await clearAllLocalHistory('free_'+Date.now(), []); 
+    statusEl.className="ok"; statusEl.textContent="✅ Cart cleared + D1 cleared";
     enterVaultBtn.href = VAULT_URL;
     return;
   }
@@ -94,7 +123,8 @@ async function init(){
     statusEl.className="ok"; statusEl.textContent="✅ PayPal already saved - refresh safe, cart empty.";
     enterVaultBtn.href = `${VAULT_URL}?session_id=${encodeURIComponent(sessionId)}`;
     localStorage.setItem('dopetone_last_session_id', sessionId);
-    clearAllLocalHistory(sessionId); return;
+    await clearAllLocalHistory(sessionId, []); 
+    return;
   }
 
   const preHistory = safeParse("dopetone_history", []);
@@ -113,6 +143,7 @@ async function init(){
       const totalCents = data.total_cents || session.total_cents || 0;
       const dollars = (totalCents/100).toFixed(2);
       const email = data.customer_email || session.customer_email || '';
+      const purchasedIds = purchases.map(p=>parseInt(p.beat_id||p.beatId||p.beat_id)).filter(Boolean);
 
       titleEl.textContent="PayPal Verified";
       subEl.innerHTML="PayPal payment confirmed.<br/>Sounds unlocked.";
@@ -141,8 +172,8 @@ async function init(){
         window.location.href = finalVaultUrl;
       };
 
-      clearAllLocalHistory(sessionId);
-      statusEl.textContent=`✅ Revenue secured - $${dollars} - PayPal - cart cleared`;
+      await clearAllLocalHistory(sessionId, purchasedIds);
+      statusEl.textContent=`✅ Revenue secured - $${dollars} - PayPal - cart + D1 cleared`;
       return;
     }
 

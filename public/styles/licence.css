@@ -5378,3 +5378,67 @@ body.licence-page #waveList .wave-row:not(.explore-row){
     color: #00eaff !important;
   }
 }
+
+
+/* 🔥 PLAY BTN - FINAL POLISHED - CENTERED OVER COVER */
+#coverWrap, .cover-wrap, .beat-cover-wrap, .cover-container {
+  position: relative !important;
+}
+
+#playBtn{
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50% !important;
+  
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  background: rgba(255,255,255,0.92) !important;
+  color: #000 !important;
+  border: none !important;
+  backdrop-filter: blur(10px) !important;
+  
+  cursor: pointer !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 0 !important;
+  z-index: 5 !important;
+}
+
+#playBtn svg{
+  width: 30px !important;
+  height: 30px !important;
+  display: block !important;
+  /* optical center - play triangle needs nudge */
+  transform: translateX(2px);
+}
+
+/* pause icon should be truly centered */
+#playBtn.playing svg,
+#playBtn:has([d*="M6 19"]) svg{
+  transform: translateX(0) !important;
+}
+
+#playBtn:hover,
+#playBtn:active,
+#playBtn:focus{
+  transform: translate(-50%, -50%) !important;
+  background: #fff !important;
+}
+
+@media (max-width: 768px){
+  #playBtn{
+    width: 80px !important;
+    height: 80px !important;
+  }
+  #playBtn svg{
+    width: 34px !important;
+    height: 34px !important;
+  }
+}

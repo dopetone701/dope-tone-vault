@@ -43,15 +43,42 @@
       opacity:1!important;
       z-index:99998!important;
     }
-    body.licence-page{
-      filter:none!important;
-      backdrop-filter:none!important;
-      background:#05070d!important;
-    }
+   
+  #beatBg{
+  position:fixed;
+  inset:0;
+  z-index:-2;
+  background-size:cover;
+  background-position:center;
+  filter: blur(18px) brightness(0.85) saturate(1.3) !important;
+  opacity:1 !important;
+  transform: scale(1.15);
+  transition: opacity 0.6s ease, background-image 0.6s ease;
+}
+#beatBg.active{ 
+  opacity:1 !important; 
+}
+
+/* make the dark overlay much lighter so bg shows */
+body.licence-page::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background: radial-gradient(circle at 20% 20%, rgba(120,80,255,0.08), transparent 50%), 
+              rgba(5,7,13,0.45) !important; /* was 0.85 - too dark */
+  z-index:-1;
+  pointer-events:none;
+}
+
+body.licence-page{
+  background-color: transparent !important;
+}
+
   </style>
 </head>
 
 <body class="empty-mode licence-page">
+<div id="beatBg"></div>
 
   <!-- 🔥 EMPTY STATE -->
   <div class="empty-state">
