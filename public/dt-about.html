@@ -119,7 +119,16 @@
     </section>
   </main>
   <div id="footer"></div>
-  <audio id="proTag" preload="auto"><source src="./audio/dt-pro-tad.wav" type="audio/wav"></audio>
+  <audio id="proTag" preload="auto"><source src="/audio/dt-pro-tag.wav" type="audio/wav"></audio>
   <script src="./js/dt-about.js"></script>
+
+  <script>
+document.getElementById('epLogoTag')?.addEventListener('click', function(){
+  const a = document.getElementById('proTag');
+  a.currentTime=0;
+  a.play().catch(e=>console.log(e));
+});
+</script>
+
 </body>
 </html>
