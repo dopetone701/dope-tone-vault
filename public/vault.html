@@ -4,16 +4,35 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Your Vault - Dope Tone</title>
 <style>
-body{margin:0;background:#0a0a0a;color:#fff;font-family:system-ui;padding:24px;max-width:900px;margin:0 auto}
-.head{background:#151515;border:1px solid #2a2a2a;border-radius:20px;padding:22px;margin-bottom:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
-.card{background:#151515;border:1px solid #2a2a2a;border-radius:20px;padding:20px;margin:14px 0}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:12px;margin:6px 6px 0 0;border:0;cursor:pointer}
-.btn-mp3{background:#fff;color:#000}.btn-wav{background:#8b5cf6;color:#fff}.btn-stems{background:#00ffc6;color:#000}
-.btn-doc{background:#222;color:#fff;border:1px solid #333}
+:root{
+  --navy:#0A1931;
+  --void:#050A14;
+  --card:#111c36;
+  --card2:#0a122a;
+  --red:#FF1E3C;
+  --blue:#1E90FF;
+  --white:#FFFFFF;
+  --muted:#9CA3AF;
+  --border:rgba(255,255,255,0.1);
+}
+body{margin:0;background:radial-gradient(ellipse at top, var(--navy) 0%, var(--void) 70%);color:var(--white);font-family:system-ui;padding:24px;max-width:900px;margin:0 auto;min-height:100vh}
+.head{background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);backdrop-filter:blur(20px)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin:14px 0;transition:.2s}
+.card:hover{border-color:rgba(255,30,60,0.2)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:12px;margin:6px 6px 0 0;border:0;cursor:pointer;transition:.2s}
+.btn-mp3{background:var(--white);color:#000}
+.btn-mp3:hover{box-shadow:0 0 20px rgba(255,255,255,0.3)}
+.btn-wav{background:var(--blue);color:#fff;box-shadow:0 0 15px rgba(30,144,255,0.3)}
+.btn-wav:hover{filter:brightness(1.1)}
+.btn-stems{background:var(--red);color:#fff;box-shadow:0 0 20px rgba(255,30,60,0.5)}
+.btn-stems:hover{filter:brightness(1.1)}
+.btn-doc{background:var(--card2);color:var(--muted);border:1px solid var(--border)}
+.btn-doc:hover{color:#fff;border-color:rgba(255,255,255,0.2)}
 .btn-disabled{opacity:.25;pointer-events:none}
-.badge{font-size:10px;padding:4px 10px;border-radius:99px;background:#222;color:#888;border:1px solid #333;margin-left:8px}
-.muted{color:#888;font-size:12px;line-height:1.6}
+.badge{font-size:10px;padding:4px 10px;border-radius:99px;background:rgba(255,30,60,0.12);color:var(--red);border:1px solid rgba(255,30,60,0.25);margin-left:8px;font-weight:800;letter-spacing:.05em}
+.muted{color:var(--muted);font-size:12px;line-height:1.6}
 h1{margin:0 0 6px;font-size:22px}
+a{color:var(--blue)}
 </style>
 </head>
 <body>

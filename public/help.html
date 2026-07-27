@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Help - Dope Tone Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./js/help/help.css">
+</head>
+<body>
+<div class="wrap">
+   <div class="topbar">
+    <a href="./index.html" class="logo-link">
+      <img src="./images/logo.png" alt="logo">
+      <span>DOPE TONE </span>
+    </a>
+<a href="./index.html#footerMount" class="back-btn">← Back to Home</a>
+  </div>
+
+  <div class="hero" id="help">
+    <small>VAULT SUPPORT</small>
+    <h1>How can we help?</h1>
+    <p>Delivery, licenses, payments, vault access. Search below — 90% answers are instant.</p>
+    <div class="search"><i>🔍</i><input id="searchInput" placeholder="Search beats, licenses, orders, vault, stems..."></div>
+  </div>
+
+  <div class="grid3">
+    <div class="card" data-scroll="faqSection"><span class="badge badge-blue">HELP • FAQ</span><h3>Help Center</h3><p>How vault delivery works, download links, session_id recovery.</p></div>
+    <div class="card" data-scroll="ticketSection"><span class="badge badge-red">TICKET</span><h3>Open Ticket</h3><p>Order issue, wrong file, payment. Tracked in D1, reply fast.</p></div>
+    <div class="card" data-scroll="licenseSection"><span class="badge badge-blue">LICENSE</span><h3>License Info</h3><p>Free / Basic $29 / Pro / Exclusive differences, streams, rights.</p></div>
+  </div>
+
+  <div class="split">
+    <div class="panel" id="faqSection">
+      <h2>FAQ — Quick Answers</h2>
+      <div class="acc"><h4>Where is my beat after payment? <span class="plus">+</span></h4><div class="ans">After Stripe success you are redirected to <b>/vault.html?session_id=...</b>. We also save localStorage dopetone_last_session_id. Your private links are VAULT_API + /api/orders/status?session_id= -> MP3/WAV/STEMS. If lost, open ticket with email + date.</div></div>
+      <div class="acc"><h4>Why session_id is required? <span class="plus">+</span></h4><div class="ans">To avoid public links. Only buyer with Stripe session_id can fetch R2 signed URLs. No account needed. Keep your success URL.</div></div>
+      <div class="acc"><h4>How licenses work in code? <span class="plus">+</span></h4><div class="ans">In vault.html RULES: free mp3 tagged no wav no stems, basic mp3+wav 5k, pro wav+stems 50k, exclusive unlimited + ownership. License .txt auto-generates via dlText() in vault.</div></div>
+      <div class="acc"><h4>Payment & currency <span class="plus">+</span></h4><div class="ans">Stripe + PayPal via checkout.js / checkout-paypal.js. USD base, AED converted. Dubai GST+4. Support: creators@dopetonevault.com / +971524082460</div></div>
+      <div class="acc"><h4>Refund policy? <span class="plus">+</span></h4><div class="ans">Digital product — no refund after download. If corrupt/wrong file, we replace within 12h via ticket verified via vault-orders-api logs.</div></div>
+      <div class="acc"><h4>Custom beats? <span class="plus">+</span></h4><div class="ans">Yes — ticket category Custom. BPM, key, mood, type_beat. Delivery 48-72h WAV+STEMS. Price from Pro tier.</div></div>
+    </div>
+
+    <div class="panel" id="ticketSection">
+      <h2>Open Ticket</h2>
+      <p class="muted">Fastest: WhatsApp +971524082460</p>
+      <div class="form">
+        <label>NAME</label><input id="tName" placeholder="Your name">
+        <label>EMAIL</label><input id="tEmail" placeholder="you@email.com">
+        <label>ORDER ID</label><input id="tOrder" placeholder="cs_test_...">
+        <label>CATEGORY</label>
+        <select id="tCat"><option>Order / Delivery</option><option>License Question</option><option>Payment Issue</option><option>File / Stems Issue</option><option>Custom Beat</option><option>Other</option></select>
+        <label>MESSAGE</label><textarea id="tMsg" rows="5" placeholder="Describe issue..."></textarea>
+        <button class="btn" id="sendTicket">SEND TICKET</button>
+        <p class="muted" id="ticketStatus" style="margin-top:10px;display:none"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="licenseSection" style="margin-top:14px">
+    <h2>License Comparison — Pro Standard</h2>
+    <p class="muted">This table matches your RULES object in vault.html</p>
+    <table>
+      <thead><tr><th>FEATURE</th><th>FREE</th><th>BASIC $29</th><th>PRO</th><th>EXCLUSIVE</th></tr></thead>
+      <tbody>
+        <tr><td>MP3</td><td class="no">Tagged only</td><td class="yes">✔ Untagged</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>WAV</td><td class="no">✕</td><td class="yes">✔</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>STEMS</td><td class="no">✕</td><td class="no">✕</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+        <tr><td>Streams</td><td>No streaming</td><td>5,000</td><td>50,000</td><td>Unlimited</td></tr>
+        <tr><td>Rights</td><td>Practice only</td><td>Commercial limited</td><td>Monetization</td><td>Full ownership • Removed</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TERMS - BEATSTARS STYLE DOPE TONE VERSION -->
+  <div class="panel" id="termsSection" style="margin-top:14px">
+    <h2>Terms of Use — DOPE TONE VAULT</h2>
+    <p class="muted">Last Updated: May 2026 • Dubai, UAE — Effective for all purchases on dopetonevault.com</p>
+    <br>
+    <h3>1. Agreement</h3>
+    <p>By purchasing from DOPE TONE VAULT, you agree to these Terms. DOPE TONE retains 100% ownership of all beats until Exclusive Rights are purchased. All licenses are non-transferable and bound to one artist / one project.</p>
+    <h3>2. License Types (BeatStars Standard adapted)</h3>
+    <ul style="list-style:disc;padding-left:18px" class="muted">
+      <li><b>Free / Tagged:</b> For audition and non-profit use only. No streaming, no monetization, must credit (Prod. by Dope Tone).</li>
+      <li><b>Basic Lease - $29:</b> MP3 + WAV untagged. Use for 1 commercial song. Up to 5,000 streams, 1 music video (10k views), 2,000 sales. Credit required. Non-exclusive.</li>
+      <li><b>Pro Lease:</b> MP3 + WAV + STEMS. Use for 1 commercial song. Up to 50,000 streams, 1 video (50k views), 5,000 sales, radio (1 station). Full monetization on YouTube/Spotify. Credit required. Non-exclusive. 10-year term.</li>
+      <li><b>Exclusive Rights:</b> MP3 + WAV + STEMS + Full Ownership. Unlimited streams, sales, radio, sync. Track removed from store after sale. You own beat forever. 100% publishing to you. DOPE TONE retains producer credit right.</li>
+    </ul>
+    <h3>3. What You CANNOT Do</h3>
+    <p>No resale of beat as-is, no re-licensing, no sharing of STEMS/WAV files. No claim as your own production. Free beats cannot be used commercially.</p>
+    <h3>4. Delivery & Refunds</h3>
+    <p>Instant digital delivery via /vault.html?session_id=... Digital goods — no refunds after download/access. If files corrupt, we replace within 12 hours via ticket verified by Stripe session_id logs. Chargebacks = license revoked automatically.</p>
+    <h3>5. Governing Law</h3>
+    <p>Operated from Dubai, UAE. UAE law applies. Any disputes via Dubai Courts or DIFC small claims.</p>
+  </div>
+
+  <!-- PRIVACY - BEATSTARS STYLE DOPE TONE VERSION -->
+  <div class="panel" id="privacySection" style="margin-top:14px">
+    <h2>Privacy Policy — DOPE TONE VAULT</h2>
+    <p class="muted">Last Updated: May 2026 • We respect your privacy like your sound.</p>
+    <br>
+    <h3>1. Data We Collect</h3>
+    <ul style="list-style:disc;padding-left:18px" class="muted">
+      <li>Email, name from checkout (Stripe/PayPal) to deliver beats</li>
+      <li>session_id, order_id stored in localStorage for vault recovery</li>
+      <li>IP + device for fraud prevention (Stripe Radar)</li>
+      <li>Vault email join — newsletter list only</li>
+    </ul>
+    <h3>2. How We Use It</h3>
+    <p>To deliver your beats via R2 signed URLs, send receipts, verify orders at /api/orders/status, improve vault. No selling data to third parties. Emails only for delivery + 1-2 drops/month if opted in.</p>
+    <h3>3. Cookies & Storage</h3>
+    <p>We use localStorage: dopetone_last_session_id, dopetone_vault_email. Stripe and PayPal use their own cookies for payment. No ad tracking pixels.</p>
+    <h3>4. Your Rights</h3>
+    <p>Request deletion of order data via ticket: we keep Stripe logs 2 years for tax (UAE law) but can delete vault email. For EU users: GDPR compliant — email creators@dopetonevault.com to delete.</p>
+    <h3>5. Contact</h3>
+    <p>DOPE TONE VAULT, Dubai — Worldwide • Email: creators@dopetonevault.com • WhatsApp: +971524082460</p>
+  </div>
+
+  <p class="muted" style="text-align:center;margin-top:28px;letter-spacing:.18em;font-size:10px">SOUND • FUTURE • CULTURE • DOPE TONE VAULT • DUBAI</p>
+</div>
+
+<script type="module" src="./js/help/help-page.js"></script>
+<script>
+// smooth scroll from footer grid3 cards
+document.querySelectorAll('[data-scroll]').forEach(c=>c.addEventListener('click',()=>{document.getElementById(c.dataset.scroll).scrollIntoView({behavior:'smooth'})}));
+// faq accordion from old css
+document.querySelectorAll('.acc').forEach(a=>a.addEventListener('click',()=>a.classList.toggle('open')));
+</script>
+</body>
+</html>
