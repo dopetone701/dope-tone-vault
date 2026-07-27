@@ -45,18 +45,39 @@ document.addEventListener("DOMContentLoaded", () => {
   window.__DOPE_TONE_AUDIO__ = audio
   window._globalAudio = audio
 
+   // KEEP ALIVE IN DYNAMIC ISLAND / LOCK SCREEN
+  window._shouldBePlaying = false;
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && audio.paused && window.__CURRENT_BEAT__) {
+    if (document.hidden) return; // DON'T PAUSE when minimized
+    if (!document.hidden && window._shouldBePlaying && audio.paused && window.__CURRENT_BEAT__) {
       audio.play().catch(()=>{})
     }
-  })
+  });
+  audio.addEventListener('play', () => { window._shouldBePlaying = true; });
+  audio.addEventListener('pause', () => {
+    // if iOS pauses it in background, force resume
+    if (document.hidden && window._shouldBePlaying) {
+      setTimeout(() => audio.play().catch(()=>{}), 300);
+    } else if (!document.hidden) {
+      window._shouldBePlaying = false;
+    }
+  });
 
-  if ('mediaSession' in navigator) {
-    navigator.mediaSession.setActionHandler('play', () => audio.play())
-    navigator.mediaSession.setActionHandler('pause', () => audio.pause())
-    navigator.mediaSession.setActionHandler('nexttrack', () => window.globalPlayer?.next())
-    navigator.mediaSession.setActionHandler('previoustrack', () => window.globalPlayer?.prev())
+
+   if ('mediaSession' in navigator) {
+    const setHandlers = () => {
+      try {
+        navigator.mediaSession.setActionHandler('play', () => { audio.play(); window._shouldBePlaying=true; });
+        navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); });
+        navigator.mediaSession.setActionHandler('nexttrack', () => window.globalPlayer?.next());
+        navigator.mediaSession.setActionHandler('previoustrack', () => window.globalPlayer?.prev());
+        navigator.mediaSession.setActionHandler('seekbackward', (d) => { audio.currentTime = Math.max(audio.currentTime - (d.seekOffset||10),0); });
+        navigator.mediaSession.setActionHandler('seekforward', (d) => { audio.currentTime = Math.min(audio.currentTime + (d.seekOffset||10), audio.duration); });
+      } catch(e){}
+    }
+    setHandlers();
   }
+
 
   let playlist = []
   let originalPlaylist = []
@@ -247,12 +268,20 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem('dt_cc_current', JSON.stringify({ id: beat.id, title: beat.title, cover: beat.cover_url, list: currentListId, timestamp: Date.now() }))
         window.dispatchEvent(new CustomEvent('cc_track_change', { detail: beat }))
         window.dispatchEvent(new CustomEvent('cc_track_selected', { detail: { beatId: beat.id } }))
-        if ('mediaSession' in navigator) {
+               if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
-            title: beat.title, artist: 'Dope Tone',
-            artwork: [{ src: beat.cover_url || 'images/logo.png', sizes: '512x512', type: 'image/png' }]
-          })
+            title: beat.title, 
+            artist: beat.type || 'Dope Tone Vault',
+            album: beat.genre || 'Dope Tone',
+            artwork: [
+              { src: beat.cover_url || 'images/logo.png', sizes: '96x96', type: 'image/png' },
+              { src: beat.cover_url || 'images/logo.png', sizes: '128x128', type: 'image/png' },
+              { src: beat.cover_url || 'images/logo.png', sizes: '512x512', type: 'image/png' }
+            ]
+          });
+          navigator.mediaSession.playbackState = 'playing';
         }
+
         setTimeout(()=>syncAll(beat.id), 50)
       };
       if(window.requestIdleCallback) requestIdleCallback(cb); else setTimeout(cb,0);
