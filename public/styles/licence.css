@@ -5442,3 +5442,22 @@ body.licence-page #waveList .wave-row:not(.explore-row){
     height: 34px !important;
   }
 }
+
+
+/* EMPTY MODE BG ONLY - KALAS */
+body.empty-mode{
+  background: #05070d !important;
+}
+body.empty-mode #beatBg{
+  display:block !important;
+  opacity:1 !important;
+  background-image: url('images/studio.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  filter: blur(24px) brightness(0.55) saturate(1.2) !important;
+  transform: scale(1.15) !important;
+}
+body.empty-mode #beatBg.active{
+  background-image: url('images/studio.jpg') !important;
+  opacity:1 !important;
+}

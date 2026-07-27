@@ -45,7 +45,7 @@ nav, .navbar, header {
   background-image: url("../images/beats-wav-bg.png") !important;
   background-position: center center !important;
   background-repeat: no-repeat !important;
-  background-size: 100% 100% !important;
+  background-size: 100% 100% !important; /* FIX - was 100% auto which crops vertically */
   opacity: 0.55 !important;
   z-index: 0 !important;
   pointer-events: none !important;
@@ -863,3 +863,137 @@ body{
 #similarTrack.dragging .recent-card {
   cursor: grabbing !important;
 }
+
+
+/* PLAYLIST GRID = FEATURED EXACT SIZE */
+#gridContainer{
+  display:grid !important;
+  grid-template-columns:repeat(auto-fill, 220px) !important;
+  justify-content:start !important;
+  gap:16px !important;
+  padding:16px !important;
+}
+
+#gridContainer .beat-card{
+  width:220px !important;
+  height:280px !important;
+  min-height:280px !important;
+  max-height:280px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  border-radius:18px !important;
+  overflow:hidden !important;
+  background:linear-gradient(145deg,#0f172a,#111827) !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+}
+
+#gridContainer .beat-cover-wrap{
+  position:relative !important;
+  width:calc(100% - 12px) !important;
+  height:130px !important;
+  min-height:130px !important;
+  max-height:130px !important;
+  margin:6px !important;
+  border-radius:12px !important;
+  overflow:hidden !important;
+  background:#000 !important;
+}
+
+#gridContainer .beat-cover{
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  display:block !important;
+}
+
+#gridContainer .beat-content{
+  flex:1 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:space-between !important;
+  padding:10px 12px 12px !important;
+  text-align:center !important;
+}
+
+#gridContainer .beat-title{ font-size:14px !important; font-weight:600 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
+#gridContainer .beat-meta{ font-size:11px !important; color:#7dd3fc !important; }
+#gridContainer .beat-price-row{ font-size:12px !important; margin:4px 0 6px !important; justify-content:center !important; }
+#gridContainer .beat-buy-btn{ height:36px !important; border-radius:10px !important; font-size:12px !important; font-weight:700 !important; }
+
+@media(max-width:768px){
+  #gridContainer{ grid-template-columns:repeat(auto-fill, 170px) !important; }
+  #gridContainer .beat-card{ width:170px !important; height:240px !important; min-height:240px !important; max-height:240px !important; }
+  #gridContainer .beat-cover-wrap{ height:100px !important; min-height:100px !important; max-height:100px !important; }
+}
+
+/* ===== EMPTY MODE FIX - NO BROKEN BG ===== */
+body.empty-mode{
+  background: radial-gradient(ellipse at 50% 0%, #1a2340 0%, #0a0f1e 45%, #05070d 100%) !important;
+  min-height:100vh;
+}
+body.empty-mode #beatBg{
+  display:block !important;
+  opacity:1 !important;
+  background-image: url('../images/studio.jpg') !important;
+  background-size:cover !important;
+  background-position:center !important;
+  filter: blur(28px) brightness(0.45) saturate(1.2) !important;
+  transform: scale(1.2) !important;
+}
+body.empty-mode::before{
+  background: rgba(5,7,13,0.65) !important;
+}
+
+body.empty-mode .empty-state{
+  display:flex !important;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  min-height: 62vh;
+  padding-top: 80px;
+  z-index:5;
+  position:relative;
+  animation: fadeUp .5s ease;
+}
+body.empty-mode .empty-state h2{
+  font-size:32px;
+  font-weight:900;
+  letter-spacing:2px;
+  background: linear-gradient(90deg,#fff,#7dd3fc);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:12px;
+}
+body.empty-mode .empty-state p{
+  color:#94a3b8;
+  font-size:14px;
+  max-width:320px;
+  line-height:1.6;
+}
+body.empty-mode .empty-state::after{
+  content:'Explore Beats';
+  margin-top:22px;
+  padding:12px 28px;
+  border-radius:999px;
+  background: linear-gradient(135deg,#00ffd0,#00bfff);
+  color:#02110f;
+  font-weight:800;
+  font-size:13px;
+  cursor:pointer;
+  display:inline-block;
+}
+body.empty-mode .empty-state:active::after{ transform:scale(.96); }
+
+body.empty-mode .licence-layout{
+  display:none !important;
+}
+body.empty-mode .selected-licence{
+  opacity:.35;
+  pointer-events:none;
+}
+
+body.active-mode .empty-state{ display:none !important; }
+body.active-mode .licence-layout{ display:flex !important; }
+
+@keyframes fadeUp{ from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:translateY(0)} }

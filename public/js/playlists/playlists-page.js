@@ -425,7 +425,7 @@ function showCartToast(text){
 
 
 
-// === PRO TOOLBAR LOGIC ===
+// === PRO TOOLBAR LOGIC - SAFE FINAL ===
 function getActivePlaylistMeta(){
   const id = window.__CURRENT_PLAYLIST_ID__ || 'liked_playlist';
   const playlists = window.getPlaylists?.() || [];
@@ -437,14 +437,14 @@ function getActivePlaylistMeta(){
 }
 function refreshBurgerUI(){
   const meta = getActivePlaylistMeta();
-  document.getElementById('burgerActiveName').textContent = meta.name;
-  document.getElementById('burgerCount').textContent = `${meta.count} tracks`;
-  document.getElementById('bAddName').textContent = meta.name;
-  document.getElementById('bRemoveName').textContent = meta.name;
-  document.getElementById('bDeleteName').textContent = meta.name;
+  const a=document.getElementById('burgerActiveName'); if(a) a.textContent=meta.name;
+  const b=document.getElementById('burgerCount'); if(b) b.textContent=`${meta.count} tracks`;
+  const c=document.getElementById('bAddName'); if(c) c.textContent=meta.name;
+  const d=document.getElementById('bRemoveName'); if(d) d.textContent=meta.name;
+  const e=document.getElementById('bDeleteName'); if(e) e.textContent=meta.name;
   const isGrid = document.getElementById('gridBtn')?.classList.contains('active');
-  document.getElementById('bViewText').textContent = isGrid ? 'View List' : 'View Grid';
-  document.getElementById('bViewIcon').textContent = isGrid ? '📋' : '🔳';
+  const vt=document.getElementById('bViewText'); if(vt) vt.textContent=isGrid?'View List':'View Grid';
+  const vi=document.getElementById('bViewIcon'); if(vi) vi.textContent=isGrid?'📋':'🔳';
 }
 document.addEventListener('DOMContentLoaded', ()=>{
   const burgerBtn = document.getElementById('playlistBurgerBtn');
@@ -459,51 +459,63 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('click', (e)=>{
     if(!e.target.closest('.playlist-burger-wrap')) burgerDD?.classList.remove('active');
   });
-  // Add track to current
+
+  // TOP + Add Track = PIC 1 - BULK ADD MANY TRACKS TO CURRENT PLAYLIST
   document.getElementById('addTrackToCurrentBtn')?.addEventListener('click', ()=>{
-    const meta = getActivePlaylistMeta();
-    const beat = window.__CURRENT_BEAT__;
-    if(!beat){ alert('Play a beat first'); return; }
-    if(window.openAddToPlaylistModal) window.openAddToPlaylistModal(beat);
+    if(window.openBulkAddTracksModal) return window.openBulkAddTracksModal();
+    if(window.openAddTracksModal) return window.openAddTracksModal();
+    if(window.openAddTracksToPlaylistModal) return window.openAddTracksToPlaylistModal();
+    if(window.openAddTracksToCurrentModal) return window.openAddTracksToCurrentModal();
+    // fallback: trigger existing bulk button if any
+    document.querySelector('[data-action="open-bulk-add"]')?.click();
   });
+
   document.getElementById('removeTrackFromCurrentBtn')?.addEventListener('click', ()=>{
     const beat = window.__CURRENT_BEAT__;
     if(!beat) return;
     const id = window.__CURRENT_PLAYLIST_ID__;
     let playlists = window.getPlaylists()||[];
     const pl = playlists.find(p=>p.id===id);
-    if(pl){ pl.beats = pl.beats.filter(b=>String(b.id)!==String(beat.id)); localStorage.setItem('dopetone_playlists', JSON.stringify(playlists)); }
+    if(pl){ pl.beats = pl.beats.filter(b=>String(b.id)!==String(beat.id)); localStorage.setItem('dopetone_playlists', JSON.stringify(playlists)); localStorage.setItem('playlists', JSON.stringify(playlists)); }
     loadPlaylistById(id); window.dispatchEvent(new Event('playlistsUpdated'));
   });
-  // burger options
+
+  // BURGER OPTIONS - INSIDE PANNE
   burgerDD?.querySelectorAll('.burger-option').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const act = btn.dataset.action;
       const meta = getActivePlaylistMeta();
+      const beat = window.__CURRENT_BEAT__;
+
       if(act==='add_playlist' && window.openPlaylistModal) window.openPlaylistModal();
+
       if(act==='add_track'){
-        const beat = window.__CURRENT_BEAT__;
+        // PIC 2 - SINGLE ADD CURRENT BEAT TO ANY PLAYLIST
         if(!beat){ alert('Play a beat first'); return; }
-        if(window.openAddToPlaylistModal) window.openAddToPlaylistModal(beat);
+        if(window.openAddToVaultModal) window.openAddToVaultModal(beat);
+        else if(window.openAddToPlaylistModal) window.openAddToPlaylistModal(beat);
       }
+
       if(act==='remove_track'){
-        const beat = window.__CURRENT_BEAT__;
         if(!beat) return;
         if(confirm(`Remove ${beat.title} from ${meta.name}?`)){
           let pls = window.getPlaylists()||[];
           const p = pls.find(x=>x.id===meta.id);
-          if(p){ p.beats = p.beats.filter(b=>String(b.id)!==String(beat.id)); localStorage.setItem('dopetone_playlists', JSON.stringify(pls)); loadPlaylistById(meta.id); }
+          if(p){ p.beats = p.beats.filter(b=>String(b.id)!==String(beat.id)); localStorage.setItem('dopetone_playlists', JSON.stringify(pls)); localStorage.setItem('playlists', JSON.stringify(pls)); loadPlaylistById(meta.id); renderPlaylistCapsulesOnly(); }
         }
       }
+
       if(act==='delete_playlist'){
-        if(meta.id==='liked_playlist' || meta.id==='downloads_playlist'){ alert('Cannot delete system playlist'); return; }
+        if(meta.id==='liked_playlist' || meta.id==='downloads_playlist' || meta.id.includes('liked')){ alert('Cannot delete system playlist'); return; }
         if(confirm(`Delete playlist "${meta.name}"?`)){
           let pls = window.getPlaylists()||[];
           pls = pls.filter(p=>p.id!==meta.id);
           localStorage.setItem('dopetone_playlists', JSON.stringify(pls));
+          localStorage.setItem('playlists', JSON.stringify(pls));
           loadPlaylistById('liked_playlist'); renderPlaylistCapsulesOnly();
         }
       }
+
       if(act==='toggle_view'){
         const isGrid = document.getElementById('gridBtn')?.classList.contains('active');
         document.getElementById(isGrid?'listBtn':'gridBtn')?.click();
@@ -511,5 +523,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       burgerDD.classList.remove('active');
     });
   });
+  window.dispatchEvent(new Event('licenceReady'));
+
   setInterval(refreshBurgerUI, 1000);
 });
+

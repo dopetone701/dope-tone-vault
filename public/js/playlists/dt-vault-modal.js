@@ -1,9 +1,7 @@
 // ===============================
-// DT VAULT MODAL - RESPECTS WORKING WAVE.JS - NO WAVE.JS EDIT NEEDED
-// Just drop this file, it auto-replaces window.openAddToPlaylistModal
+// DT VAULT MODAL - FIXED AUTO ADD + NO LIST CASE
 // ===============================
 import { getVaultPlaylists, createVaultPlaylist, addBeatToVault } from "./dt-vault-storage.js"
-
 
 const getMode = (b) => {
   if (!b) return 'paid';
@@ -38,13 +36,21 @@ function openVaultModalImpl(){
   </div>`;
   document.body.appendChild(modal);
   const input=modal.querySelector("#playlistNameInput");
-  modal.querySelector(".playlist-modal-backdrop").onclick=()=>modal.remove();
-  modal.querySelector(".plClose").onclick=()=>modal.remove();
+  modal.querySelector(".playlist-modal-backdrop").onclick=()=>{ modal.remove(); window.__PENDING_VAULT_BEAT__=null; window.__PENDING_PLAYLIST_BEAT__=null; };
+  modal.querySelector(".plClose").onclick=()=>{ modal.remove(); window.__PENDING_VAULT_BEAT__=null; window.__PENDING_PLAYLIST_BEAT__=null; };
   modal.querySelector("#createPlaylistBtn").onclick=()=>{
     const name=input.value.trim(); if(!name){ const e=modal.querySelector("#playlistError"); e.textContent="Enter playlist name"; e.style.display="block"; return; }
     const res=createVaultPlaylist(name);
     if(!res.ok){ const e=modal.querySelector("#playlistError"); e.textContent=res.message; e.style.display="block"; return; }
-    if(window.__PENDING_VAULT_BEAT__){ addBeatToVault(res.playlist.id, normalizeBeat(window.__PENDING_VAULT_BEAT__)); window.__PENDING_VAULT_BEAT__=null; }
+    const pending = window.__PENDING_VAULT_BEAT__ || window.__PENDING_PLAYLIST_BEAT__ || window.__PENDING_BEAT__;
+    if(pending){
+      addBeatToVault(res.playlist.id, normalizeBeat(pending));
+      window.__PENDING_VAULT_BEAT__=null; 
+      window.__PENDING_PLAYLIST_BEAT__=null;
+      window.__PENDING_BEAT__=null;
+      modal.remove(); toast(`Created "${name}" & added ${pending.title}`);
+      return;
+    }
     modal.remove(); toast(`Playlist "${name}" created`);
   };
   setTimeout(()=>input.focus(),100);
@@ -55,6 +61,14 @@ function openAddToVaultModalImpl(beat){
   const safe=normalizeBeat(beat); if(!safe) return;
   const mode=getMode(safe);
   const playlists=getVaultPlaylists().filter(p=>!p.isLiked);
+
+  // IF NO PLAYLIST - DIRECTLY OPEN CREATE
+  if(!playlists.length){
+    window.__PENDING_VAULT_BEAT__ = safe;
+    window.__PENDING_PLAYLIST_BEAT__ = safe;
+    openVaultModalImpl();
+    return;
+  }
 
   const modal=document.createElement("div"); modal.id="playlistModal";
   modal.innerHTML=`
@@ -67,10 +81,10 @@ function openAddToVaultModalImpl(beat){
       <div style="font-size:11px;font-weight:800;color:${mode==='free'?'#fff':'#00f0ff'}">${mode==='free'?'FREE':`$${Number(safe.price||29.99).toFixed(2)}`}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
-      ${playlists.length? playlists.map(pl=>{
+      ${playlists.map(pl=>{
         const exists=pl.beats.find(b=>String(b.id)===String(safe.id));
         return `<button class="pl-pick" data-id="${pl.id}" style="display:flex;align-items:center;gap:12px;padding:12px;background:${exists?'rgba(255,60,60,.08)':'rgba(255,255,255,.04)'};border:1px solid ${exists?'rgba(255,60,60,.2)':'rgba(255,255,255,.06)'};border-radius:14px;cursor:pointer;text-align:left;width:100%"><div style="width:36px;height:36px;background:${exists?'linear-gradient(135deg,#ff3c3c,#ff7a00)':'rgba(255,255,255,.08)'};border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">${pl.name[0].toUpperCase()}</div><div style="flex:1"><div style="color:#fff;font-size:13px;font-weight:600">${pl.name}</div><div style="color:#666;font-size:11px">${pl.beats.length} tracks</div></div><div style="font-size:11px;font-weight:700;color:${exists?'#00ffc8':'#ff7a00'}">${exists?'✓ Added':'+ Add'}</div></button>`;
-      }).join("") : `<div style="color:#555;text-align:center;padding:20px;font-size:12px">No playlists yet</div>`}
+      }).join("")}
     </div>
     <button id="newPlBtn" style="width:100%;margin-top:12px;height:42px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.15);border-radius:12px;color:#888;font-weight:700;cursor:pointer">+ Create New Playlist</button>
   </div>`;
@@ -82,14 +96,24 @@ function openAddToVaultModalImpl(beat){
     const pl=playlists.find(p=>p.id===id);
     modal.remove(); toast(res.removed? `Removed from ${pl.name}` : `Added to ${pl.name}`);
   });
-  modal.querySelector("#newPlBtn").onclick=()=>{ modal.remove(); setTimeout(()=>{ window.__PENDING_VAULT_BEAT__=safe; openVaultModalImpl(); },150); };
+  modal.querySelector("#newPlBtn").onclick=()=>{ 
+    window.__PENDING_VAULT_BEAT__=safe;
+    window.__PENDING_PLAYLIST_BEAT__=safe;
+    modal.remove(); 
+    setTimeout(()=>openVaultModalImpl(),100); 
+  };
 }
 
 // AUTO-RESPECT WORKING WAVE.JS - OVERRIDE GLOBAL
-window.openPlaylistModal = openVaultModalImpl;
+window.openPlaylistModal = (beat)=>{
+  if(beat){ window.__PENDING_VAULT_BEAT__=beat; window.__PENDING_PLAYLIST_BEAT__=beat; }
+  openVaultModalImpl();
+};
 window.openAddToPlaylistModal = openAddToVaultModalImpl;
 window.openVaultModal = openVaultModalImpl;
 window.openAddToVaultModal = openAddToVaultModalImpl;
 window.closePlaylistModal = ()=>{ const m=document.getElementById("playlistModal"); if(m) m.remove(); };
+window.getPlaylists = getVaultPlaylists;
+window.addBeatToPlaylist = addBeatToVault;
 
-console.log("DT VAULT MODAL: ready - respects wave.js");
+console.log("DT VAULT MODAL: ready - fixed pending + no list");

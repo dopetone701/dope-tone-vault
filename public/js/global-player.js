@@ -345,15 +345,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 🔥 WORKING HEART HANDLER FROM YOUR PERFECT FILE
   function handleLike(e){
-    e?.preventDefault(); e?.stopPropagation(); e?.stopImmediatePropagation();
-    const beat=playlist[currentIndex]||window.__CURRENT_BEAT__; if(!beat){ console.warn('no beat'); return }
-    const res=toggleLikeStorage(beat.id);
-    beat.liked=res.liked;
-    syncAll(beat.id, res.liked);
-    const btn=document.getElementById("loveTrackBtn"); if(btn){ btn.classList.add('animate'); setTimeout(()=>btn.classList.remove('animate'),300) }
-    logLike(beat.id, res.liked);
-    console.log(`[FINAL] ${res.liked?'LIKED':'UNLIKED'} ${beat.id} total=${res.total} localStorage=${JSON.stringify(getLikes())}`);
+  e?.preventDefault(); e?.stopPropagation(); e?.stopImmediatePropagation();
+  const beat=playlist[currentIndex]||window.__CURRENT_BEAT__; if(!beat) return
+  const res=toggleLikeStorage(beat.id);
+  beat.liked=res.liked;
+  syncAll(beat.id, res.liked);
+
+  // 🔥 SYNC TO VAULT LIKED PLAYLIST
+  let likedIds = JSON.parse(localStorage.getItem('dt_liked_v1')||'[]');
+  let vault = JSON.parse(localStorage.getItem('dt_vault_v1')||'[]');
+  let likedPl = vault.find(p=>p.isLiked);
+  if(!likedPl){
+    likedPl = {id:'dt_liked_playlist', name:'Liked', isLiked:true, beats:[]};
+    vault.unshift(likedPl);
   }
+  if(res.liked){
+    if(!likedIds.includes(String(beat.id)) &&!likedIds.includes(Number(beat.id))) likedIds.push(beat.id);
+    if(!likedPl.beats.some(b=>String(b.id)===String(beat.id))) likedPl.beats.unshift(beat);
+  } else {
+    likedIds = likedIds.filter(id=>String(id)!==String(beat.id));
+    likedPl.beats = likedPl.beats.filter(b=>String(b.id)!==String(beat.id));
+  }
+  localStorage.setItem('dt_liked_v1', JSON.stringify(likedIds));
+  localStorage.setItem('dt_liked_ids', JSON.stringify(likedIds));
+  localStorage.setItem('dt_vault_v1', JSON.stringify(vault));
+
+  window.dispatchEvent(new Event('dt_vault_updated'));
+  window.dispatchEvent(new Event('playlistsUpdated'));
+
+  const btn=document.getElementById("loveTrackBtn"); if(btn){ btn.classList.add('animate'); setTimeout(()=>btn.classList.remove('animate'),300) }
+  logLike(beat.id, res.liked);
+}
+
   heartBtn?.addEventListener('click', handleLike)
   mpHeart?.addEventListener('click', handleLike)
   // UNKILLABLE DELEGATION FROM YOUR PERFECT FILE
@@ -364,13 +387,72 @@ document.addEventListener("DOMContentLoaded", () => {
   window.isBeatLiked=isLiked;
   window.toggleBeatLike=(id)=>{ const r=toggleLikeStorage(id); syncAll(id, r.liked); return r.liked }
 
+   const __PRO_DL__ = new Set();
   const handleDownload = async (e) => {
-    e?.preventDefault(); e?.stopPropagation()
-    const beat = playlist[currentIndex]; if (!beat) return
-    logDownload(beat.id);
-    window.dispatchEvent(new CustomEvent('cc_download', { detail: { beat_id: beat.id } }));
-    const a = document.createElement('a'); a.href = beat.mp3_url; a.download = `${beat.title}.mp3`; a.click()
+    e?.preventDefault();
+    e?.stopPropagation();
+    e?.stopImmediatePropagation();
+
+    const beat = playlist[currentIndex] || window.__CURRENT_BEAT__;
+    if(!beat) return;
+
+    // AUTH CHECK
+    const isLoggedIn =!!(window.Auth?.user || JSON.parse(localStorage.getItem('dopetone_user')||'null'));
+    if(!isLoggedIn){ window.Auth?.openModal(false); return; }
+
+    const mode = (beat.monetization_mode||'').toLowerCase();
+    const isFree = mode==='free' || mode==='hybrid' || beat.has_free_tagged==1 || beat.is_free==1 || beat.has_free_tagged===true || beat.is_free===true;
+
+    // PAID = ADD TO CART + ACTIVE LIKE FEATURED
+    if(!isFree){
+      let cart = JSON.parse(localStorage.getItem('dopetone_cart')||'[]');
+      if(!cart.find(x=>String(x.id)===String(beat.id))){
+        cart.push(beat);
+        localStorage.setItem('dopetone_cart', JSON.stringify(cart));
+
+        // D1 report + UI update like featured
+        const total = cart.length;
+        localStorage.setItem('dopetone_cart_count', String(total));
+        window.dispatchEvent(new CustomEvent('cc_cart_updated', {detail:{beat_id:beat.id, count: total}}));
+        window.dispatchEvent(new CustomEvent('cc_player_cart_sync', {detail:{total, beat_id:beat.id, action:'cart'}}));
+        window.dispatchEvent(new CustomEvent('cc_cart_change', {detail:{beat_id:beat.id, added:true}}));
+        document.querySelectorAll('.cart-count').forEach(c=>{ c.textContent=total; c.style.display='flex'; });
+        document.getElementById('cartItems') && (document.getElementById('cartItems').textContent=String(total));
+
+        // make buttons active like featured buy btn
+        document.getElementById('gpAdd')?.classList.add('active');
+        document.getElementById('mpAdd')?.classList.add('active');
+        document.getElementById('gpDownload')?.classList.add('active');
+        document.getElementById('mpDownload')?.classList.add('active');
+      }
+      setTimeout(()=> location.href=`licence-page.html?id=${beat.id}`, 150);
+      return;
+    }
+
+    // FREE/HYBRID = DIRECT DOWNLOAD + D1
+    if(__PRO_DL__.has(String(beat.id))) return;
+    __PRO_DL__.add(String(beat.id));
+    const btn = e.currentTarget;
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin.6s linear infinite"></span>`;
+    try{
+      logDownload(beat.id);
+      window.dispatchEvent(new CustomEvent('cc_downloaded',{detail:{beat_id:beat.id}}));
+      fetch(`${STATS_API}/api/stats/track/${beat.id}/download`,{method:'POST',keepalive:true}).catch(()=>{});
+      const r = await fetch(beat.mp3_url,{mode:'cors'});
+      const b = await r.blob();
+      const u = URL.createObjectURL(b);
+      const a = document.createElement('a'); a.href=u; a.download=`${beat.title}_DopeTone_FREE.mp3`; document.body.appendChild(a); a.click();
+      setTimeout(()=>{URL.revokeObjectURL(u); a.remove()},2000);
+      btn.innerHTML=`✓`; setTimeout(()=>{btn.innerHTML=orig; __PRO_DL__.delete(String(beat.id))},2000);
+    }catch{ btn.innerHTML=orig; __PRO_DL__.delete(String(beat.id)); }
   }
+
+  document.getElementById('gpDownload')?.replaceWith(document.getElementById('gpDownload').cloneNode(true));
+  document.getElementById('mpDownload')?.replaceWith(document.getElementById('mpDownload').cloneNode(true));
+  document.getElementById('gpDownload')?.addEventListener('click', handleDownload);
+  document.getElementById('mpDownload')?.addEventListener('click', handleDownload);
+
   downloadBtn?.addEventListener('click', handleDownload)
   mpDownload?.addEventListener('click', handleDownload)
 
@@ -555,3 +637,61 @@ function syncPlayerData() {
   const mobilePlayer = document.getElementById('mobilePlayer'); if (mobilePlayer && gpCover) { mobilePlayer.style.backgroundImage = `url(${gpCover.src})` }
 }
 document.addEventListener('DOMContentLoaded', initMobilePlayer)
+
+
+// === GLOBAL PLAYER DOWNLOAD = FEATURED DOWNLOAD ===
+(() => {
+  const STATS = "https://dopetone-stats.dopetone701.workers.dev";
+  const active = new Set();
+
+  async function track(beat){
+    try{
+      document.getElementById('totalDownloads') && (document.getElementById('totalDownloads').textContent = String((parseInt(document.getElementById('totalDownloads').textContent||'0')||0)+1));
+      window.dispatchEvent(new CustomEvent('cc_downloaded', {detail:{beat_id:beat.id}}));
+      fetch(`${STATS}/api/stats/track/${beat.id}/download`, {method:'POST', keepalive:true}).catch(()=>{});
+    }catch{}
+  }
+
+  async function proDl(beat, btn){
+    if(active.has(String(beat.id))) return;
+    active.add(String(beat.id));
+    const orig = btn.innerHTML;
+    try{
+      btn.disabled=true;
+      btn.innerHTML=`<span style="width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;display:inline-block;animation:spin .6s linear infinite"></span>`;
+      await track(beat);
+      const url = beat.mp3_url || beat.audio_url || beat.audio;
+      const res = await fetch(url, {mode:'cors'});
+      const blob = await res.blob();
+      const bUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=bUrl; a.download=`${beat.title.replace(/[^a-z0-9]/gi,'_')}_DopeTone_FREE.mp3`; a.click();
+      setTimeout(()=>{URL.revokeObjectURL(bUrl); a.remove()},2000);
+      btn.innerHTML=`✓`; btn.style.background='#10b981';
+      setTimeout(()=>{btn.innerHTML=orig; btn.style.background=''; btn.disabled=false; active.delete(String(beat.id))},2500);
+    }catch(e){
+      const a=document.createElement('a'); a.href=beat.mp3_url; a.download=`${beat.title}.mp3`; a.target='_blank'; a.click();
+      btn.innerHTML=orig; btn.disabled=false; active.delete(String(beat.id));
+    }
+  }
+
+  function bind(){
+    ['mpDownload','gpDownload'].forEach(id=>{
+      const btn=document.getElementById(id);
+      if(!btn || btn.dataset.proBound) return;
+      btn.dataset.proBound="1";
+      const clone=btn.cloneNode(true); btn.parentNode.replaceChild(clone, btn);
+      clone.addEventListener('click', async (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const beat=window.__CURRENT_BEAT__; if(!beat) return;
+        const mode=(beat.monetization_mode||'').toLowerCase();
+        const isFree= mode==='free'||mode==='hybrid'||beat.has_free_tagged==1||beat.is_free;
+        if(!isFree){ location.href=`licence-page.html?id=${beat.id}`; return; }
+        await proDl(beat, clone);
+      });
+    });
+  }
+
+  setTimeout(bind,500);
+  document.addEventListener('playerPlay', ()=>setTimeout(bind,100));
+})();

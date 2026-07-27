@@ -52,115 +52,46 @@
     <link rel="stylesheet" href="dt-footer-mobile-premium.css">
 
     <style>
-        /* Fix: make room for fixed global player */
-        body {
-            padding-bottom: 110px;
-        }
-       
-        /* ===============================
-           SEARCH - OBEYS YOUR TOGGLE RULES
-           =============================== */
-        .view-toggle .arsenal-search {
-          position: relative;
-          margin-left: auto;
-        }
-
+        body { padding-bottom:110px; }
+        .view-toggle .arsenal-search { position:relative; margin-left:auto; }
         .view-toggle #beatSearch {
-          border: none;
-          padding: 6px 14px;
-          border-radius: 8px;
-          font-size: 13px;
-          font-family: 'Poppins', sans-serif;
-          cursor: text;
-          background: transparent;
-          color: rgba(255,255,255,0.6);
-          transition: all 0.25s ease;
-          width: 220px;
-          outline: none;
+          border:none; padding:6px 14px; border-radius:8px; font-size:13px;
+          font-family:'Poppins',sans-serif; cursor:text; background:transparent;
+          color:rgba(255,255,255,0.6); transition:all 0.25s ease; width:220px; outline:none;
         }
+        .view-toggle #beatSearch::placeholder{ color:rgba(255,255,255,0.4); }
+        .view-toggle #beatSearch:hover{ color:#fff; }
+        .view-toggle #beatSearch:focus{ color:#fff; background:rgba(255,255,255,0.05); }
+        .view-toggle .search-dropdown{
+          position:absolute; top:100%; right:0; width:320px; background:#0a0e1a;
+          border:1px solid rgba(255,255,255,0.05); border-radius:8px; max-height:300px;
+          overflow-y:auto; z-index:1000; display:none; margin-top:8px;
+        }
+        .view-toggle .search-dropdown.active{ display:block; }
+        .search-item{ display:flex; align-items:center; padding:10px 12px; gap:10px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.03); }
+        .search-item:hover{ background:rgba(255,255,255,0.05); }
+        .search-item img{ width:40px; height:40px; border-radius:6px; object-fit:cover; }
+        .search-item-info{ flex:1; }
+        .search-item-title{ font-size:13px; color:#fff; margin-bottom:2px; }
+        .search-item-meta{ font-size:11px; color:rgba(255,255,255,0.5); }
+        .search-item-play{ width:28px; height:28px; border-radius:50%; background:rgba(0,234,255,0.1); border:1px solid rgba(0,234,255,0.3); color:#00eaff; display:flex; align-items:center; justify-content:center; font-size:10px; }
 
-        .view-toggle #beatSearch::placeholder {
-          color: rgba(255,255,255,0.4);
+        /* FORCE GAP - FINAL */
+        .playlist-controls-wrap{
+          display:flex !important;
+          align-items:center !important;
+          gap:24px !important;
+          margin-left:20px !important;
         }
+        #addTrackToCurrentBtn{ margin-right:0 !important; }
+        #removeTrackFromCurrentBtn{ margin-left:0 !important; margin-right:0 !important; }
+        .playlist-burger-wrap{
+          margin-left:20px !important;
+          padding-left:20px !important;
+          border-left:1px solid rgba(255,255,255,.15) !important;
+        }
+</style>
 
-        .view-toggle #beatSearch:hover {
-          color: #fff;
-        }
-
-        .view-toggle #beatSearch:focus {
-          color: #fff;
-          background: rgba(255, 255, 255, 0.05);
-        }
-
-        .view-toggle .search-dropdown {
-          position: absolute;
-          top: 100%;
-          right: 0;
-          width: 320px;
-          background: #0a0e1a;
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
-          max-height: 300px;
-          overflow-y: auto;
-          z-index: 1000;
-          display: none;
-          margin-top: 8px;
-        }
-
-        .view-toggle .search-dropdown.active {
-          display: block;
-        }
-       
-        .search-item {
-          display: flex;
-          align-items: center;
-          padding: 10px 12px;
-          gap: 10px;
-          cursor: pointer;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-          transition: background 0.2s ease;
-        }
-       
-        .search-item:hover {
-          background: rgba(255, 255, 255, 0.05);
-        }
-       
-        .search-item img {
-          width: 40px;
-          height: 40px;
-          border-radius: 6px;
-          object-fit: cover;
-        }
-       
-        .search-item-info {
-          flex: 1;
-        }
-       
-        .search-item-title {
-          font-size: 13px;
-          font-family: 'Poppins', sans-serif;
-          color: #fff;
-          margin-bottom: 2px;
-        }
-       
-        .search-item-meta {
-          font-size: 11px;
-          font-family: 'Poppins', sans-serif;
-          color: rgba(255, 255, 255, 0.5);
-        }
-       
-        .search-item-play {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: rgba(0, 234, 255, 0.1);
-          border: 1px solid rgba(0, 234, 255, 0.3);
-          color: #00eaff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 10px;
-        }
     </style>
 </head>
 
@@ -200,39 +131,39 @@
             <button id="listBtn" class="active">List</button>
             <button id="gridBtn">Grid</button>
         </div>
-       
         <div class="arsenal-search">
           <input type="search" id="beatSearch" placeholder="Search in playlists..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly')">
           <div class="search-dropdown" id="searchDropdown"></div>
         </div>
-       
         <div id="playlistCapsules" class="playlist-capsules"></div>
 
-        <div class="playlist-controls-wrap">
-            <button id="addTrackToCurrentBtn" class="pro-add-track-btn" title="Add track to current playlist">
-                <span>+</span> Add Track
-            </button>
-            <button id="removeTrackFromCurrentBtn" class="pro-remove-track-btn" title="Remove selected track">
-                <span>−</span> Remove Track
-            </button>
-           
-            <div class="playlist-burger-wrap">
-                <button id="playlistBurgerBtn" class="playlist-burger-btn">☰</button>
-                <div id="playlistBurgerDropdown" class="burger-dropdown">
-                    <div class="burger-header"><span id="burgerActiveName">Liked</span> • <small id="burgerCount">0 tracks</small></div>
-                    <button class="burger-option" data-action="add_playlist"><span>➕</span> Add Playlist</button>
-                    <button class="burger-option" data-action="add_track"><span>🎵</span> Add Track to <b id="bAddName">Current</b></button>
-                    <button class="burger-option" data-action="remove_track"><span>❌</span> Remove Track from <b id="bRemoveName">Current</b></button>
-                    <button class="burger-option danger" data-action="delete_playlist"><span>🗑</span> Delete <b id="bDeleteName">Playlist</b></button>
-                    <div class="burger-divider"></div>
-                    <button class="burger-option" data-action="toggle_view"><span id="bViewIcon">🔳</span> <span id="bViewText">View Grid</span></button>
-                </div>
-            </div>
+        <div class="playlist-controls-wrap" style="display:flex !important; align-items:center !important; flex-direction:row !important; gap:0 !important;">
+    <button id="addTrackToCurrentBtn" class="pro-add-track-btn" title="Add track to current playlist" style="height:36px; padding:0 14px; border-radius:10px; border:1px solid rgba(0,234,255,.3); background:rgba(0,234,255,.12); color:#7dd3fc; font-weight:700; font-size:12px; cursor:pointer;">
+        <span>+</span> Add Track
+    </button>
 
-            <!-- keep old for compatibility -->
-            <button id="playlistMiniAdd" class="add-playlist-btn" style="display:none"><span class="plus-icon">+</span></button>
-            <div class="playlist-remove-wrap" style="display:none"><button id="playlistRemoveBtn">⋮</button></div>
+    <div style="width:26px; min-width:26px; height:1px;"></div>
+
+    <button id="removeTrackFromCurrentBtn" class="pro-remove-track-btn" title="Remove selected track" style="height:36px; padding:0 14px; border-radius:10px; border:1px solid rgba(255,77,148,.25); background:rgba(255,77,148,.1); color:#ff8db3; font-weight:700; font-size:12px; cursor:pointer;">
+        <span>−</span> Remove Track
+    </button>
+
+    <div style="width:34px; min-width:34px; height:1px;"></div>
+
+    <div class="playlist-burger-wrap" style="position:relative; margin-left:0 !important; padding-left:20px !important; border-left:1px solid rgba(255,255,255,.18) !important;">
+        <button id="playlistBurgerBtn" class="playlist-burger-btn" style="width:38px; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#151b2c; color:#fff; font-size:16px; cursor:pointer;">☰</button>
+        <div id="playlistBurgerDropdown" class="burger-dropdown">
+            <div class="burger-header"><span id="burgerActiveName">Liked</span> • <small id="burgerCount">0 tracks</small></div>
+            <button class="burger-option" data-action="add_playlist"><span>➕</span> Add Playlist</button>
+            <button class="burger-option" data-action="add_track"><span>🎵</span> Add Track to <b id="bAddName">Current</b></button>
+            <button class="burger-option" data-action="remove_track"><span>❌</span> Remove Track from <b id="bRemoveName">Current</b></button>
+            <button class="burger-option danger" data-action="delete_playlist"><span>🗑</span> Delete <b id="bDeleteName">Playlist</b></button>
+            <div class="burger-divider"></div>
+            <button class="burger-option" data-action="toggle_view"><span id="bViewIcon">🔳</span> <span id="bViewText">View Grid</span></button>
         </div>
+    </div>
+</div>
+
     </div>
 </div>
 
@@ -460,6 +391,8 @@ fetch("auth.html")
 <script type="module" src="js/playlists/recent-played.js"></script>
 <script type="module" src="js/playlists/playlist-similar.js"></script>
 
+<script type="module" src="js/playlists/dt-vault-storage.js"></script>
+<script type="module" src="js/playlists/dt-vault-modal.js"></script>
 
 
 <!-- ================= PAGE ================= -->

@@ -2,6 +2,7 @@
 // 🔥 SIMILAR TRACKS - FIXED FOR LICENCE PAGE + MONETIZATION + PRICE FIX + NO PAID WORD
 // ========================================
 const API_URL = 'https://api.dopetonevault.com';
+const STATS_API = "https://dopetone-stats.dopetone701.workers.dev";
 
 const getMode = (b) => {
   if (!b) return 'paid';
@@ -55,6 +56,82 @@ async function fetchAllBeats(){
   }
 }
 
+// === FEATURED PRO DOWNLOAD SYSTEM - ADDED, NO CSS TOUCHED ===
+const activeDownloads = new Set();
+
+async function trackDownload(beat){
+  try{
+    const dlEl = document.getElementById('totalDownloads');
+    if(dlEl) dlEl.textContent = String((parseInt(dlEl.textContent||'0')||0)+1);
+    window.dispatchEvent(new CustomEvent('cc_downloaded', {detail:{beat_id:beat.id, title:beat.title}}));
+    window.dispatchEvent(new CustomEvent('cc_track_download', {detail:{beatId:beat.id}}));
+    fetch(`${STATS_API}/api/stats/track/${beat.id}/download`, {method:'POST', keepalive:true}).catch(()=>{});
+    fetch(`${STATS_API}/api/stats/global/download`, {method:'POST', keepalive:true, body: JSON.stringify({beat_id: beat.id})}).catch(()=>{});
+  }catch{}
+}
+
+async function proDownload(beat, btn){
+  // use global from featured if exists
+  if(window.proDownload && window.proDownload!== proDownload) return window.proDownload(beat, btn);
+
+  if(activeDownloads.has(String(beat.id))) return;
+  activeDownloads.add(String(beat.id));
+  const origText = btn.innerHTML;
+  try{
+    btn.disabled = true;
+    btn.innerHTML = `Preparing...`;
+    await trackDownload(beat);
+    try{
+      const cart = JSON.parse(localStorage.getItem("dopetone_cart")||"[]");
+      const total = cart.length;
+      localStorage.setItem('dopetone_cart_count', String(total));
+      window.dispatchEvent(new CustomEvent('cc_downloaded', {detail:{beat_id:beat.id, action:'download'}}));
+    }catch{}
+    const url = beat.mp3_url || beat.audio_url || beat.audio;
+    if(!url) throw new Error('No audio url');
+    const res = await fetch(url, {mode:'cors', cache:'no-store'});
+    if(!res.ok) throw new Error('Fetch failed');
+    btn.innerHTML = `Downloading...`;
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `${beat.title.replace(/[^a-z0-9]/gi,'_')}_DopeTone_FREE.mp3`;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{
+      URL.revokeObjectURL(blobUrl);
+      a.remove();
+    }, 2000);
+    btn.innerHTML = `✓ Downloaded`;
+    btn.style.background = '#10b981';
+    btn.style.color = '#fff';
+    setTimeout(()=>{
+      btn.innerHTML = origText;
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.disabled = false;
+      activeDownloads.delete(String(beat.id));
+    }, 2500);
+  }catch(err){
+    console.error('[PRO DOWNLOAD FAIL]', err);
+    try{
+      const a=document.createElement('a');
+      a.href=beat.mp3_url||beat.audio_url;
+      a.download=`${beat.title}.mp3`;
+      a.target='_blank'; a.rel='noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      btn.innerHTML = `✓ Downloaded`;
+      setTimeout(()=>{ btn.innerHTML=origText; btn.disabled=false; activeDownloads.delete(String(beat.id)); },2000);
+    }catch{
+      btn.innerHTML = `Failed - Retry`;
+      btn.disabled=false;
+      activeDownloads.delete(String(beat.id));
+    }
+  }
+}
+
 export async function renderSimilarTracks(currentList = null) {
     const container = document.getElementById("similarTrack");
     if(!container) return;
@@ -102,8 +179,8 @@ export async function renderSimilarTracks(currentList = null) {
                 const btnEl = e.currentTarget.closest('.latest-card')?.querySelector('.btn-buy') || e.currentTarget;
                 let cart = JSON.parse(localStorage.getItem("dopetone_cart")||"[]");
                 if(mode==='free'){
-                  const a=document.createElement('a'); a.href=beat.mp3_url||beat.audio; a.download=`${beat.title}.mp3`; document.body.appendChild(a); a.click(); a.remove();
-                  btnEl.textContent="Downloaded ✓"; setTimeout(()=>btnEl.textContent="Free Download",1500); return;
+                  await proDownload(beat, btnEl);
+                  return;
                 }
                 const exists = cart.find(item => String(item.id)==String(beat.id));
                 if(exists){

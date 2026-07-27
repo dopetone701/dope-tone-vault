@@ -156,10 +156,19 @@ export function renderVault(partial=false, removedId=null){
   const isHomepage = window.location.pathname === '/' || window.location.pathname.includes('index') || document.getElementById('homepagePlaylists');
   if(isHomepage) displayList = displayList.slice(0,2);
 
-  if(!displayList.length){
-    mount.innerHTML=`<div class="your-playlists-head"><div class="drop"></div><div class="your-playlists-title">Your Playlists</div></div><div class="your-playlists-line"></div><div style="text-align:center;padding:40px;color:#666;">No playlists yet</div>`;
-    return;
-  }
+ if(!displayList.length){
+  mount.innerHTML=`
+  <div class="your-playlists-head"><div class="drop"></div><div class="your-playlists-title">Your Playlists</div></div>
+  <div class="your-playlists-line"></div>
+  <div style="text-align:center;padding:80px 30px 70px 30px;margin:10px 8px;background:rgba(255,255,255,0.03);border:1px dashed rgba(0,240,255,0.2);border-radius:16px;">
+    <div style="font-size:42px;margin-bottom:14px;">🎧</div>
+    <div style="color:#888;font-size:13px;margin-bottom:24px;letter-spacing:.5px;">No playlists yet - create your first vibe</div>
+    <button class="explore-btn" onclick="window.openPlaylistModal ? window.openPlaylistModal() : window.createNewPlaylistPro()">+ ADD PLAYLIST</button>
+  </div>`;
+  return;
+}
+
+
 
   displayList.forEach(pl=>{
     playlistMap.set(pl.id, pl.beats);
@@ -206,9 +215,9 @@ export function renderVault(partial=false, removedId=null){
           const mode=getMode(beat);
           const price=getPriceHTML(beat);
           const removeBtn=isLiked
-          ? `<button class="premium-remove heart" title="Unlike" onclick="event.stopPropagation(); window.unlikeInstant('${beat.id}')">${HEART_SVG}</button>`
-            : `<button class="premium-remove" title="Remove" onclick="event.stopPropagation(); window.removeInstant('${pl.id}','${beat.id}')">✕</button>`;
-          return `<div class="vault-wave-row" data-beat-id="${beat.id}" data-pl="${pl.id}">
+? `<button class="premium-remove heart" title="Unlike (click to remove)" style="pointer-events:auto;z-index:5;" onclick="event.stopPropagation(); event.preventDefault(); window.unlikeInstant('${beat.id}'); return false;">${HEART_SVG}</button>`
+: `<button class="premium-remove" title="Remove" style="pointer-events:auto;z-index:5;" onclick="event.stopPropagation(); event.preventDefault(); window.removeInstant('${pl.id}','${beat.id}'); return false;">✕</button>`;
+ return `<div class="vault-wave-row" data-beat-id="${beat.id}" data-pl="${pl.id}">
             <div class="wave-left"><div class="wave-cover-wrap"><img src="${beat.cover_url||beat.cover||'images/logo.png'}"><button class="wave-play">${PLAY_SVG}</button></div></div>
             <div class="wave-info"><div class="wave-title">${beat.title||beat.name}</div><div class="wave-meta">${beat.key||'--'} • ${beat.genre||'--'} • ${beat.bpm||'--'}</div></div>
             <div class="wave-bar" id="vault-wave-${beat.id}"></div>
@@ -650,3 +659,36 @@ export function renderPlaylistCapsulesOnly(){
   }).join('');
 }
 window.renderPlaylistCapsulesOnly = renderPlaylistCapsulesOnly;
+
+
+window.addLikedToVault = (beat)=>{
+  if(!beat?.id) return;
+  let vault=JSON.parse(localStorage.getItem('dt_vault_v1')||'[]');
+  let likedPl=vault.find(p=>p.isLiked);
+  if(!likedPl){ likedPl={id:'dt_liked_playlist',name:'Liked',isLiked:true,beats:[]}; vault.unshift(likedPl); }
+  if(!likedPl.beats.some(b=>String(b.id)===String(beat.id))) likedPl.beats.unshift(beat);
+  localStorage.setItem('dt_vault_v1', JSON.stringify(vault));
+  renderVault(false);
+};
+window.createNewPlaylistPro = ()=>{
+  // Use your real modal if exists
+  if(window.openPlaylistModal){
+    window.openPlaylistModal(); // your existing create playlist modal
+    return;
+  }
+  if(window.openCreatePlaylistModal){
+    window.openCreatePlaylistModal();
+    return;
+  }
+  // Fallback if modal missing
+  const name = prompt('Playlist name?','My Vibe');
+  if(!name) return;
+  let vault = JSON.parse(localStorage.getItem('dt_vault_v1')||'[]');
+  const id = 'pl_'+Date.now();
+  vault.push({id, name, beats:[], createdAt:Date.now()});
+  localStorage.setItem('dt_vault_v1', JSON.stringify(vault));
+  renderVault(false);
+};
+
+
+

@@ -1,534 +1,237 @@
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dope Tone Licence</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dope Tone Licence</title>
 
-  <link rel="stylesheet" href="styles/licence.css" />
-  <link rel="stylesheet" href="styles/global-player.css">
-  <link rel="stylesheet" href="styles/player-overlay.css">
-  <link rel="stylesheet" href="styles/full-screen.css">
-  <link rel="stylesheet" href="styles/explore-row.css">
-  <link rel="stylesheet" href="styles/dopetone-footer.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-  <link rel="stylesheet" href="styles/auth.css">
-  <link rel="stylesheet" href="styles/playlist-modal.css">
-  <link rel="stylesheet" href="styles/playlists.css">
-  <link rel="stylesheet" href="styles/navbar.css">
+<style>/* CRITICAL - INSTANT PAINT - NO FLASH */
+html,body{ background:#080c1d !important; margin:0; }
+html.has-cart body.empty-mode .empty-state{ display:none !important; }
+html.has-cart body.empty-mode .licence-layout{ display:flex !important; }
+#pageLoader{
+  position:fixed; inset:0; z-index:9999999;
+  background:#080c1d; display:block;
+  transition: opacity .3s ease;
+}
+#pageLoader.hide{ opacity:0; pointer-events:none; }
+.skel{ background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.14) 37%, rgba(255,255,255,.06) 63%); background-size:400% 100%; animation: skelLoad 1.2s ease infinite; border-radius:12px; }
+@keyframes skelLoad{ 0%{ background-position:100% 0 } 100%{ background-position:-100% 0 } }
+body.licence-page:not(.is-ready) .licence-layout,
+body.licence-page:not(.is-ready) .selected-licence,
+body.licence-page:not(.is-ready) .similar-section,
+body.licence-page:not(.is-ready) .dt-explore-wrap,
+body.licence-page:not(.is-ready) .licence-playlists-shell,
+body.licence-page:not(.is-ready) #globalPlayerUI,
+body.licence-page:not(.is-ready) #cartBeatRow,
+body.licence-page:not(.is-ready) .empty-state{ opacity:0; pointer-events:none; }
+body.licence-page.is-ready .licence-layout{ opacity:1; transition: opacity .4s ease; }
 
-  <script type="module">
-    import { createPaypalCheckout } from "./js/licence/checkout-paypal.js";
-    window.createStripeCheckout = createPaypalCheckout;
-    window.createPaypalCheckout = createPaypalCheckout;
-  </script>
+/* MOBILE FIX + PLUS BUTTON */
+@media(max-width: 768px){
+  #pageLoader > div:nth-child(2){
+    grid-template-columns: 1fr !important;
+    gap:18px !important;
+  }
+  #pageLoader > div:nth-child(2) > div:first-child,
+  #pageLoader > div:nth-child(2) > div:last-child{
+    display:none !important; /* hide side Free/Pro skeleton on mobile */
+  }
+  #pageLoader .skel[style*="280px"]{
+    width:200px !important; height:200px !important;
+  }
 
-  <style>
-    #navbarMount{
-      position:relative;
-      z-index:99999;
-    }
-    #authMount{
-      position:fixed!important;
-      inset:0!important;
-      z-index:1000000!important;
-      pointer-events:none!important;
-      display:contents!important;
-    }
-    #authMount>*{
-      pointer-events:auto!important;
-    }
-    #globalPlayerUI.global-player{
-      filter:none!important;
-      backdrop-filter:none!important;
-      background:#0a0e1a!important;
-      opacity:1!important;
-      z-index:99998!important;
-    }
-   
+
+
+  /* PREVENT BLUE FLASH ON MOBILE */
+  html, body{ background:#080c1d !important; }
+  body.licence-page:not(.is-ready) .beat-center{
+    opacity:0 !important;
+  }
+}
+
+
+</style>
+
+<div id="pageLoader">
+  <div style="height:52px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; padding:0 18px; color:#00e5ff; font-weight:900; letter-spacing:1px; font-family: sans-serif;">DOPE TONE</div>
+  <div style="display:grid; grid-template-columns: 260px 1fr 280px; gap:32px; max-width:1300px; margin:22px auto; padding:0 18px;">
+    <div style="display:flex; flex-direction:column; gap:22px;">
+      <div style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px;"><div class="skel" style="height:14px; width:40%; margin-bottom:14px"></div><div class="skel" style="height:10px; margin-bottom:8px"></div><div class="skel" style="height:10px; width:80%; margin-bottom:8px"></div><div class="skel" style="height:10px; width:60%; margin-bottom:8px"></div><div class="skel" style="height:10px; width:70%; margin-bottom:16px"></div><div class="skel" style="height:28px; width:50%"></div></div>
+      <div style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px;"><div class="skel" style="height:14px; width:40%; margin-bottom:14px"></div><div class="skel" style="height:10px; margin-bottom:8px"></div><div class="skel" style="height:10px; width:80%; margin-bottom:8px"></div><div class="skel" style="height:10px; width:60%; margin-bottom:8px"></div><div class="skel" style="height:28px; width:60%"></div></div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+      <div class="skel" style="width:280px; height:280px; border-radius:18px;"></div>
+      <div class="skel" style="height:16px; width:100px; border-radius:99px"></div>
+      <div class="skel" style="height:10px; width:50px; border-radius:99px"></div>
+      <div style="display:flex; gap:8px; margin-top:4px"><div class="skel" style="width:60px; height:30px; border-radius:99px"></div><div class="skel" style="width:36px; height:30px; border-radius:99px"></div><div class="skel" style="width:36px; height:30px; border-radius:99px"></div></div>
+      <div style="width:100%; max-width:360px; display:flex; flex-direction:column; gap:10px; margin-top:10px"><div class="skel" style="height:38px;"></div><div class="skel" style="height:38px;"></div><div class="skel" style="height:38px;"></div><div class="skel" style="height:38px;"></div><div class="skel" style="height:38px;"></div></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:22px;">
+      <div style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px;"><div class="skel" style="height:14px; width:40%; margin-bottom:14px"></div><div class="skel" style="height:10px; margin-bottom:8px"></div><div class="skel" style="height:10px; width:80%; margin-bottom:8px"></div><div class="skel" style="height:32px; width:100%; border-radius:99px; margin-top:14px"></div></div>
+      <div style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px;"><div class="skel" style="height:14px; width:50%; margin-bottom:14px"></div><div class="skel" style="height:10px; margin-bottom:8px"></div><div class="skel" style="height:10px; width:70%; margin-bottom:8px"></div><div class="skel" style="height:20px; width:60%; margin-top:10px"></div></div>
+    </div>
+  </div>
+  <div class="skel" style="position:fixed; left:50%; bottom:18px; transform:translateX(-50%); width:78%; max-width:980px; height:64px; border-radius:18px;"></div>
+</div>
+
+<script>
+(function(){
+  try{ const cart = JSON.parse(localStorage.getItem('dopetone_cart')||'[]'); if(cart.length>0) document.documentElement.classList.add('has-cart'); }catch{}
+})();
+</script>
+
+<link rel="stylesheet" href="styles/licence.css" />
+<link rel="stylesheet" href="styles/global-player.css">
+<link rel="stylesheet" href="styles/player-overlay.css">
+<link rel="stylesheet" href="styles/full-screen.css">
+<link rel="stylesheet" href="styles/explore-row.css">
+<link rel="stylesheet" href="styles/dopetone-footer.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<link rel="stylesheet" href="styles/auth.css">
+<link rel="stylesheet" href="styles/playlist-modal.css">
+<link rel="stylesheet" href="styles/playlists.css">
+<link rel="stylesheet" href="styles/navbar.css">
+
+<script type="module">
+  import { createPaypalCheckout } from "./js/licence/checkout-paypal.js";
+  window.createStripeCheckout = createPaypalCheckout;
+  window.createPaypalCheckout = createPaypalCheckout;
+</script>
+
+<style>
+  #navbarMount{ position:relative; z-index:99999; }
+  #authMount{ position:fixed!important; inset:0!important; z-index:1000000!important; pointer-events:none!important; display:contents!important; }
+  #authMount>*{ pointer-events:auto!important; }
+  #globalPlayerUI.global-player{ filter:none!important; backdrop-filter:none!important; background:#0a0e1a!important; opacity:1!important; z-index:99998!important; }
   #beatBg{
-  position:fixed;
-  inset:0;
-  z-index:-2;
-  background-size:cover;
-  background-position:center;
-  filter: blur(18px) brightness(0.85) saturate(1.3) !important;
-  opacity:1 !important;
-  transform: scale(1.15);
-  transition: opacity 0.6s ease, background-image 0.6s ease;
-}
-#beatBg.active{ 
-  opacity:1 !important; 
-}
-
-/* make the dark overlay much lighter so bg shows */
-body.licence-page::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  background: radial-gradient(circle at 20% 20%, rgba(120,80,255,0.08), transparent 50%), 
-              rgba(5,7,13,0.45) !important; /* was 0.85 - too dark */
-  z-index:-1;
-  pointer-events:none;
+    position:fixed; inset:0; z-index:-2; background-size:cover; background-position:center;
+    filter: blur(18px) brightness(0.85) saturate(1.3) !important; opacity:1 !important; transform: scale(1.15);
+    transition: opacity 0.6s ease, background-image 0.6s ease;
+  }
+  #beatBg.active{ opacity:1 !important; }
+  body.licence-page::before{
+    content:""; position:fixed; inset:0;
+    background: radial-gradient(circle at 20% 20%, rgba(120,80,255,0.08), transparent 50%), rgba(5,7,13,0.45) !important;
+    z-index:-1; pointer-events:none;
+  }
+  
+  body.empty-mode .empty-state{
+  padding-top: 72px; /* push below navbar */
+  justify-content: flex-start;
+  padding-top: 50px;
 }
 
-body.licence-page{
-  background-color: transparent !important;
-}
-
-  </style>
+</style>
 </head>
 
 <body class="empty-mode licence-page">
 <div id="beatBg"></div>
 
-  <!-- 🔥 EMPTY STATE -->
-  <div class="empty-state">
-    <h2>YOUR CART IS EMPTY</h2>
-    <p>Add beats to activate licence selection and build your sound arsenal.</p>
+<div class="empty-state"><h2>YOUR CART IS EMPTY</h2><p>Add beats to activate licence selection and build your sound arsenal.</p></div>
+
+<div class="licence-layout">
+  <div class="licence-side left">
+    <div class="licence-card free"><h3>Free</h3><p>Tagged • Non-profit use only</p><ul class="licence-features"><li>MP3 (tagged)</li><li>Practice only</li><li>No monetization</li><li>No streaming</li></ul><div class="price"><span class="old">$00</span><span class="new">$00</span></div><button class="explore-btn" onclick="window.location.href='beats.html'">Explore Beats</button><button class="pay-btn" data-name="Free" data-price="0">Select Licence</button></div>
+    <div class="licence-card basic"><h3>Basic</h3><p>MP3 + WAV • Limited use</p><ul class="licence-features"><li>MP3 + WAV</li><li>5,000 streams</li><li>Commercial use</li><li>No stems</li></ul><div class="price"><span class="old">$00</span><span class="new">$00</span></div><button class="explore-btn" onclick="window.location.href='index.html'">Explore Samples</button><button class="pay-btn" data-name="Basic" data-price="19">Select Licence</button></div>
   </div>
-
-  <div class="licence-layout">
-
-    <!-- LEFT -->
-    <div class="licence-side left">
-
-      <!-- FREE -->
-      <div class="licence-card free">
-        <h3>Free</h3>
-        <p>Tagged • Non-profit use only</p>
-        <ul class="licence-features">
-          <li>MP3 (tagged)</li>
-          <li>Practice only</li>
-          <li>No monetization</li>
-          <li>No streaming</li>
-        </ul>
-        <div class="price">
-          <span class="old">$00</span>
-          <span class="new">$00</span>
-        </div>
-        <button class="explore-btn" onclick="window.location.href='beats.html'">Explore Beats</button>
-        <button class="pay-btn" data-name="Free" data-price="0">Select Licence</button>
-      </div>
-
-      <!-- BASIC -->
-      <div class="licence-card basic">
-        <h3>Basic</h3>
-        <p>MP3 + WAV • Limited use</p>
-        <ul class="licence-features">
-          <li>MP3 + WAV</li>
-          <li>5,000 streams</li>
-          <li>Commercial use</li>
-          <li>No stems</li>
-        </ul>
-        <div class="price">
-          <span class="old">$00</span>
-          <span class="new">$00</span>
-        </div>
-        <button class="explore-btn" onclick="window.location.href='index.html'">Explore Samples</button>
-        <button class="pay-btn" data-name="Basic" data-price="19">Select Licence</button>
-      </div>
-
-    </div>
-
-    <!-- CENTER -->
-    <div class="beat-center">
-      <div class="beat-card">
-        <div class="logo-card">
-          <div class="cover-wrapper">
-            <img id="cover" src="images/logo.png"/>
-            <button id="playBtn">▶</button>
-          </div>
-        </div>
-        <h2 id="title">CART EMPTY</h2>
-        <div id="playCount" class="beat-plays">0 plays</div>
-
-        <div class="beat-actions">
-  <button class="action-btn like" id="likeBtn">
-    <svg id="heartIcon" viewBox="0 0 24 24" width="20" height="20">
-      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke="currentColor" stroke-width="2"/>
-    </svg>
-    <span id="likeCount">0</span>
-  </button>
-
- 
-<!-- Add Button -->
-<button id="addBtn" class="action-btn">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-</button>
-
-<!-- Share Button -->
-<button id="shareBtn" class="action-btn">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="18" cy="5" r="3"></circle>
-        <circle cx="6" cy="12" r="3"></circle>
-        <circle cx="18" cy="19" r="3"></circle>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-    </svg>
-</button>
-
+  <div class="beat-center"><div class="beat-card"><div class="logo-card"><div class="cover-wrapper"><img id="cover" src="images/logo.png"/><button id="playBtn">▶</button></div></div><h2 id="title">CART EMPTY</h2><div id="playCount" class="beat-plays">0 plays</div>
+      <div class="beat-actions"><button class="action-btn like" id="likeBtn"><svg id="heartIcon" viewBox="0 0 24 24" width="20" height="20"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span id="likeCount">0</span></button>
+<button id="addBtn" class="action-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+<button id="shareBtn" class="action-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></button>
 </div>
-        <div class="meta">
-          <div class="meta-row"><span class="label">KEY</span><span id="key"></span></div>
-          <div class="meta-row"><span class="label">BPM</span><span id="bpm"></span></div>
-          <div class="meta-row"><span class="label">GENRE</span><span id="genre"></span></div>
-          <div class="meta-row"><span class="label">MOOD</span><span id="mood"></span></div>
-          <div class="meta-row"><span class="label">TYPE BEAT</span><span id="type"></span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT -->
-    <div class="licence-side right">
-
-      <!-- PRO -->
-      <div class="licence-card pro active">
-        <h3>🔥 Pro</h3>
-        <p>WAV + stems • Advanced use</p>
-        <ul class="licence-features">
-          <li>WAV + stems</li>
-          <li>50,000 streams</li>
-          <li>Monetization</li>
-          <li>No ownership</li>
-        </ul>
-        <div class="price">
-          <span class="old">$00</span>
-          <span class="new">$00</span>
-        </div>
-        <button class="explore-btn" onclick="window.location.href='index.html'">Explore Packs</button>
-        <button class="pay-btn" data-name="Pro" data-price="49">Select Licence</button>
-      </div>
-
-      <!-- EXCLUSIVE -->
-      <div class="licence-card exclusive">
-        <h3>👑 Exclusive</h3>
-        <p>Full rights • Own the beat</p>
-        <ul class="licence-features">
-          <li>Unlimited streams</li>
-          <li>Commercial rights</li>
-          <li>Beat removed</li>
-          <li>Full ownership</li>
-        </ul>
-        <div class="price">
-          <span class="old">$00</span>
-          <span class="new">$00</span>
-        </div>
-        <button class="explore-btn" onclick="window.location.href='index.html'">Creator Tools</button>
-        <button class="pay-btn" data-name="Exclusive" data-price="199">Select Licence</button>
-      </div>
-
-    </div>
-
+      <div class="meta"><div class="meta-row"><span class="label">KEY</span><span id="key"></span></div><div class="meta-row"><span class="label">BPM</span><span id="bpm"></span></div><div class="meta-row"><span class="label">GENRE</span><span id="genre"></span></div><div class="meta-row"><span class="label">MOOD</span><span id="mood"></span></div><div class="meta-row"><span class="label">TYPE BEAT</span><span id="type"></span></div></div>
+    </div></div>
+  <div class="licence-side right">
+    <div class="licence-card pro active"><h3>🔥 Pro</h3><p>WAV + stems • Advanced use</p><ul class="licence-features"><li>WAV + stems</li><li>50,000 streams</li><li>Monetization</li><li>No ownership</li></ul><div class="price"><span class="old">$00</span><span class="new">$00</span></div><button class="explore-btn" onclick="window.location.href='index.html'">Explore Packs</button><button class="pay-btn" data-name="Pro" data-price="49">Select Licence</button></div>
+    <div class="licence-card exclusive"><h3>👑 Exclusive</h3><p>Full rights • Own the beat</p><ul class="licence-features"><li>Unlimited streams</li><li>Commercial rights</li><li>Beat removed</li><li>Full ownership</li></ul><div class="price"><span class="old">$00</span><span class="new">$00</span></div><button class="explore-btn" onclick="window.location.href='index.html'">Creator Tools</button><button class="pay-btn" data-name="Exclusive" data-price="199">Select Licence</button></div>
   </div>
-  <div id="cartBeatRow" class="cart-beat-row"></div>
-
-  <!-- ================= NAVBAR ================= -->
+</div>
+<div id="cartBeatRow" class="cart-beat-row"></div>
 <div id="navbarMount"></div>
-
-<!-- ================= AUTH ================= -->
 <div id="authMount"></div>
+<div class="selected-licence"><div class="selected-top"><h3>Selected Licence</h3><span id="selectedName">None</span></div>
+  <div id="checkout-email-wrap" style="padding:12px 16px 0;"><input id="customerEmail" type="email" placeholder="Email for receipt + downloads" required style="width:100%;padding:12px 14px;background:#111;border:1px solid #333;border-radius:10px;color:#fff;font-size:13px;outline:none;margin-bottom:8px"><input id="customerName" type="text" placeholder="Full name (for receipt)" style="width:100%;padding:12px 14px;background:#111;border:1px solid #333;border-radius:10px;color:#fff;font-size:13px;outline:none"><div id="emailError" style="color:#ff3b3b;font-size:11px;margin-top:6px;display:none">Enter a valid email</div></div>
+  <div class="selected-bottom"><div class="total-box"><span>Total</span><strong id="totalPrice">$0</strong></div><button id="checkoutBtn" onclick="createStripeCheckout()">Checkout</button></div>
+</div>
+<section class="similar-section"><div class="section-head"><h2 id="similarTitle">Similar Tracks</h2></div><div class="similar-wrap"><button class="similar-arrow left" id="similarLeft">‹</button><div id="similarTrack" class="latest-container similar-scroll"></div><button class="similar-arrow right" id="similarRight">›</button></div></section>
+<div class="dt-explore-wrap"><div class="dt-explore-box"><div class="dt-explore-left"><img src="images/logo.png" class="dt-explore-logo"/></div><div class="dt-explore-info"><div class="dt-explore-title">Explore More Tracks</div><div class="dt-explore-sub">Find similar vibes →</div></div><div class="dt-explore-center"><div class="dt-explore-line"></div></div><div class="dt-explore-right"><a href="beats.html" class="dt-explore-btn">Explore</a></div></div></div>
+<div class="licence-playlists-shell"><div class="licence-playlists-inner"><section id="licencePlaylists"></section></div></div>
 
-  <!-- ACTIVE STATE ONLY -->
-  <div class="selected-licence">
-    <div class="selected-top">
-      <h3>Selected Licence</h3>
-      <span id="selectedName">None</span>
-    </div>
+<div id="globalPlayerUI" class="global-player">
+  <div class="gp-left"><img id="gpCover" src="images/logo.png" /><div class="gp-text" id="gpInfo"><div id="gpTitle">No track</div><button id="gpAdd">+</button></div></div>
+  <div class="gp-center"><div class="gp-controls"><button id="gpShuffle" class="player-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4L4 5.41l5.17 5.17l1.42-1.41zM14.5 4l2.04 2.04L4 18.59L5.41 20L17.96 7.46L20 9.5V4h-5.5zm.33 9.41l-1.41 1.41l3.13 3.13L14.5 20H20v-5.5l-2.04 2.04l-3.13z"/></svg></button><button id="gpPrev" class="player-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button><button id="gpPlay" class="player-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path id="gpPlayPath" d="M8 5v14l11-7z"/></svg></button><button id="gpNext" class="player-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button><button id="gpRepeat" class="player-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button><button id="gpDownload" class="gp-side player-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button><button id="gpMore" class="gp-side player-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button></div><div class="gp-progress-wrap"><span id="gpCurrent">0:00</span><div id="gpProgress"><div id="gpBar"></div></div><span id="gpDuration">0:00</span></div></div><div class="gp-right"><button id="loveTrackBtn" class="love-track-btn"><span class="love-text">LOVE IT</span><span class="love-heart">♡</span></button><div class="wave-card player-cover-wrap"><canvas id="liquidEq" width="54" height="54"></canvas></div></div>
+</div>
 
-    <!-- PRO RECEIPT EMAIL - WIRED TO CHECKOUT.JS + STRIPE WORKER -->
-    <div id="checkout-email-wrap" style="padding:12px 16px 0;">
-      <input id="customerEmail" type="email" placeholder="Email for receipt + downloads" required
-        style="width:100%;padding:12px 14px;background:#111;border:1px solid #333;border-radius:10px;color:#fff;font-size:13px;outline:none;margin-bottom:8px">
-      <input id="customerName" type="text" placeholder="Full name (for receipt)"
-        style="width:100%;padding:12px 14px;background:#111;border:1px solid #333;border-radius:10px;color:#fff;font-size:13px;outline:none">
-      <div id="emailError" style="color:#ff3b3b;font-size:11px;margin-top:6px;display:none">Enter a valid email</div>
-    </div>
+<div id="mobilePlayer" class="mobile-player"><div class="mp-header"><span id="mpClose"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></span></div><img id="mpCover" src="images/logo.png"><div id="mpTitle">No track</div><div class="mp-controls"><button id="mpPrev" class="player-btn"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button><button id="mpPlay" class="player-btn play-btn"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path id="mpPlayPath" d="M8 5v14l11-7z"/></svg></button><button id="mpNext" class="player-btn"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button></div><div id="mpProgress"><div id="mpBar"></div></div><div class="mp-time"><span id="mpCurrent">0:00</span><span id="mpDuration">0:00</span></div><div class="mp-actions"><button id="mpLike" class="love-track-btn"><span class="love-heart">♡</span></button><button id="mpShuffle" class="player-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4L4 5.41l5.17 5.17l1.42-1.41zM14.5 4l2.04 2.04L4 18.59L5.41 20L17.96 7.46L20 9.5V4h-5.5zm.33 9.41l-1.41 1.41l3.13 3.13L14.5 20H20v-5.5l-2.04 2.04l-3.13-3.13z"/></svg></button><button id="mpRepeat" class="player-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button><button id="mpDownload"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button><button id="mpBuy" class="player-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></button><button id="mpMore"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2z"/></svg></button></div></div>
 
-    <div class="selected-bottom">
-      <div class="total-box">
-        <span>Total</span>
-        <strong id="totalPrice">$0</strong>
-      </div>
-      <button id="checkoutBtn" onclick="createStripeCheckout()">Checkout</button>
-    </div>
-  </div>
+<script type="module" src="js/app.js"></script>
+<script src="https://unpkg.com/wavesurfer.js"></script>
+<script src="js/global-player.js"></script>
+<script src="js/mini-eq.js"></script>
+<script type="module" src="js/licence/licence-page.js"></script>
 
-  <section class="similar-section">
-    <div class="section-head">
-      <h2 id="similarTitle">Similar Tracks</h2>
-    </div>
-    <div class="similar-wrap">
-      <button class="similar-arrow left" id="similarLeft">‹</button>
-      <div id="similarTrack" class="latest-container similar-scroll"></div>
-      <button class="similar-arrow right" id="similarRight">›</button>
-    </div>
-  </section>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const track = document.getElementById("similarTrack")
+  const left = document.getElementById("similarLeft")
+  const right = document.getElementById("similarRight")
+  if(!track || !left || !right) return
+  left.onclick = () => { track.scrollBy({ left:-320, behavior:"smooth" }) }
+  right.onclick = () => { track.scrollBy({ left:320, behavior:"smooth" }) }
+})
+</script>
 
-  <div class="dt-explore-wrap">
-    <div class="dt-explore-box">
-      <div class="dt-explore-left">
-        <img src="images/logo.png" class="dt-explore-logo"/>
-      </div>
-      <div class="dt-explore-info">
-        <div class="dt-explore-title">Explore More Tracks</div>
-        <div class="dt-explore-sub">Find similar vibes →</div>
-      </div>
-      <div class="dt-explore-center">
-        <div class="dt-explore-line"></div>
-      </div>
-      <div class="dt-explore-right">
-        <a href="beats.html" class="dt-explore-btn">Explore</a>
-      </div>
-    </div>
-  </div>
+<script>
+(function(){
+  function reveal(){
+    document.body.classList.add('is-ready');
+    const l=document.getElementById('pageLoader');
+    if(l){ l.classList.add('hide'); setTimeout(()=>l.remove(),400); }
+  }
+  window.addEventListener('licenceReady', reveal);
+  window.addEventListener('load', ()=> setTimeout(reveal, 900));
+})();
+</script>
 
-  <!-- ================= PLAYLIST SAFE WRAP ================= -->
-  <div class="licence-playlists-shell">
-    <div class="licence-playlists-inner">
-      <section id="licencePlaylists"></section>
-    </div>
-  </div>
+<div id="footerMount"></div>
+<script src="js/footer-loader.js"></script>
+<script src="js/more-btn-override.js"></script>
+<div id="playlistModalMount"></div>
+<script type="module" src="js/playlists/playlist-storage.js"></script>
+<script type="module" src="js/playlists/playlist-engine.js"></script>
+<script type="module" src="js/playlists/playlist-render.js"></script>
+<script type="module" src="js/playlists/playlist-modal.js"></script>
 
-  <!-- ================= GLOBAL PLAYER - SVG ONLY ================= -->
-  <div id="globalPlayerUI" class="global-player">
-        <div class="gp-left">
-            <img id="gpCover" src="images/logo.png" />
-            <div class="gp-text" id="gpInfo">
-                <div id="gpTitle">No track</div>
-                <button id="gpAdd">+</button>
-            </div>
-        </div>
-       
-        <div class="gp-center">
-            <div class="gp-controls">
-               <button id="gpShuffle" class="player-btn" title="Enable shuffle">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M10.59 9.17L5.41 4L4 5.41l5.17 5.17l1.42-1.41zM14.5 4l2.04 2.04L4 18.59L5.41 20L17.96 7.46L20 9.5V4h-5.5zm.33 9.41l-1.41 1.41l3.13 3.13L14.5 20H20v-5.5l-2.04 2.04l-3.13z"/>
-                    </svg>
-                </button>
-
-                <button id="gpPrev" class="player-btn" title="Previous">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-                    </svg>
-                </button>
-
-                <button id="gpPlay" class="player-btn" title="Play" aria-label="Play/Pause">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                        <path id="gpPlayPath" d="M8 5v14l11-7z"/>
-                    </svg>
-                </button>
-
-                <button id="gpNext" class="player-btn" title="Next">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-                    </svg>
-                </button>
-
-                <button id="gpRepeat" class="player-btn" title="Enable repeat">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
-                    </svg>
-                </button>
-
-                <button id="gpDownload" class="gp-side player-btn" title="Download">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                    </svg>
-                </button>
-                <button id="gpMore" class="gp-side player-btn" title="More">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                    </svg>
-                </button>
-
-            </div>
-           
-            <div class="gp-progress-wrap">
-                <span id="gpCurrent">0:00</span>
-                <div id="gpProgress"><div id="gpBar"></div></div>
-                <span id="gpDuration">0:00</span>
-            </div>
-        </div>
-       
-        <div class="gp-right">
-            <button id="loveTrackBtn" class="love-track-btn">
-                <span class="love-text">LOVE IT</span>
-                <span class="love-heart">♡</span>
-            </button>
-            <div class="wave-card player-cover-wrap">
-                <canvas id="liquidEq" width="54" height="54"></canvas>
-            </div>
-        </div>
-    </div>
-
-  <!-- ================= MOBILE PLAYER - SVG ONLY ================= -->
-  <div id="mobilePlayer" class="mobile-player">
-        <div class="mp-header">
-            <span id="mpClose">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
-                </svg>
-            </span>
-        </div>
-        <img id="mpCover" src="images/logo.png">
-        <div id="mpTitle">No track</div>
-       
-        <div class="mp-controls">
-            <button id="mpPrev" class="player-btn">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-                </svg>
-            </button>
-           
-            <button id="mpPlay" class="player-btn play-btn" title="Play" aria-label="Play/Pause">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-        <path id="mpPlayPath" d="M8 5v14l11-7z"/>
-    </svg>
-</button>
-
-           
-            <button id="mpNext" class="player-btn">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-                </svg>
-            </button>
-        </div>
-       
-        <div id="mpProgress"><div id="mpBar"></div></div>
-       
-        <div class="mp-time">
-            <span id="mpCurrent">0:00</span>
-            <span id="mpDuration">0:00</span>
-        </div>
-       
-        <div class="mp-actions">
-            <button id="mpLike" class="love-track-btn">
-                <span class="love-heart">♡</span>
-            </button>
-           
-            <button id="mpShuffle" class="player-btn" title="Shuffle">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M10.59 9.17L5.41 4L4 5.41l5.17 5.17l1.42-1.41zM14.5 4l2.04 2.04L4 18.59L5.41 20L17.96 7.46L20 9.5V4h-5.5zm.33 9.41l-1.41 1.41l3.13 3.13L14.5 20H20v-5.5l-2.04 2.04l-3.13-3.13z"/>
-                </svg>
-            </button>
-           
-            <button id="mpRepeat" class="player-btn" title="Repeat">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
-                </svg>
-            </button>
-           
-            <button id="mpDownload">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                </svg>
-            </button>
-           
-            <button id="mpBuy" class="player-btn" title="Buy Track">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
-    </svg>
-</button>
-
-            <button id="mpMore">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2-.9 2-2-.9-2-2-2z"/>
-                </svg>
-            </button>
-        </div>
-    </div>
- 
-  <script type="module" src="js/app.js"></script>
-  <script src="https://unpkg.com/wavesurfer.js"></script>
-  <script src="js/global-player.js"></script>
-  <script src="js/mini-eq.js"></script>
-  <script type="module" src="js/licence/licence-page.js"></script>
-  <script>
-  document.addEventListener("DOMContentLoaded", () => {
-      const track = document.getElementById("similarTrack")
-      const left = document.getElementById("similarLeft")
-      const right = document.getElementById("similarRight")
-      if(!track || !left || !right) return
-      left.onclick = () => { track.scrollBy({ left:-320, behavior:"smooth" }) }
-      right.onclick = () => { track.scrollBy({ left:320, behavior:"smooth" }) }
-  })
-  </script>
-
-  <div id="footerMount"></div>
-  <script src="js/footer-loader.js"></script>
-  <script src="js/more-btn-override.js"></script>
-
-  <!-- ================= PLAYLIST SYSTEM ================= -->
-  <div id="playlistModalMount"></div>
-  <script type="module" src="js/playlists/playlist-storage.js"></script>
-  <script type="module" src="js/playlists/playlist-engine.js"></script>
-  <script type="module" src="js/playlists/playlist-render.js"></script>
-  <script type="module" src="js/playlists/playlist-modal.js"></script>
-
-<!-- ================= NAVBAR + AUTH LOADER - FIXED FOR YOUR NEW NAV IDS ================= -->
 <script type="module">
 async function bootApp() {
   try {
-    // 1. NAV
-    const navRes = await fetch('navbar.html');
-    const navHtml = await navRes.text();
-    document.getElementById('navbarMount').innerHTML = navHtml;
-
-    // 2. AUTH
-    const authRes = await fetch('auth.html');
-    const authHtml = await authRes.text();
-    document.getElementById('authMount').innerHTML = authHtml;
-
-    // 3. AUTH JS
+    const navRes = await fetch('navbar.html'); const navHtml = await navRes.text(); document.getElementById('navbarMount').innerHTML = navHtml;
+    const authRes = await fetch('auth.html'); const authHtml = await authRes.text(); document.getElementById('authMount').innerHTML = authHtml;
     await import('./js/auth.js');
-    
-    // 4. FIXED MENU - supports BOTH old (.mobile-panel/.overlay) AND new (#navPanel/#navOverlay)
-    initMenu();
-    window.initMobileMenu?.();
-    bindCart();
-
+    initMenu(); window.initMobileMenu?.(); bindCart();
     window.dispatchEvent(new Event('navbarLoaded'));
-    console.log('✅ nav + auth booted');
   } catch(e){ console.error('Boot failed', e); }
 }
-
 function initMenu(){
   const toggle = document.querySelector(".menu-toggle");
   const panel = document.getElementById("navPanel") || document.querySelector(".mobile-panel");
   const overlay = document.getElementById("navOverlay") || document.querySelector(".overlay");
   const closeBtn = document.getElementById("panelCloseBtn");
   if(!toggle || !panel || !overlay) return;
-  if(panel.dataset.navReady==="true") return;
-  panel.dataset.navReady="true";
-
+  if(panel.dataset.navReady==="true") return; panel.dataset.navReady="true";
   const open = ()=>{ panel.classList.add("active"); overlay.classList.add("active"); document.body.classList.add("menu-open","panel-open"); document.body.style.overflow='hidden'; };
   const close = ()=>{ panel.classList.remove("active"); overlay.classList.remove("active"); document.body.classList.remove("menu-open","panel-open"); document.body.style.overflow=''; panel.style.transform=""; };
-
   toggle.addEventListener("click", (e)=>{ e.preventDefault(); panel.classList.contains("active")?close():open(); });
-  closeBtn?.addEventListener("click", close);
-  overlay.addEventListener("click", close);
+  closeBtn?.addEventListener("click", close); overlay.addEventListener("click", close);
   panel.addEventListener("click", (e)=>{ if(e.target.closest("a")) close(); });
   document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") close(); });
 }
-
 function bindCart(){
-  const go = (e)=>{
-    if(e) e.preventDefault();
-    const cart = JSON.parse(localStorage.getItem("dopetone_cart")||"[]");
-    window.location.href = cart.length===0 ? "licence-page.html" : `licence-page.html?id=${cart[0].id}`;
-  };
-  document.querySelectorAll("#cartBtn, #mobileCartBtn, .cart-btn").forEach(b=>{
-    const t = b.closest('a,button')||b;
-    t.onclick = go;
-    if(t.tagName==='A') t.removeAttribute('href');
-  });
+  const go = (e)=>{ if(e) e.preventDefault(); const cart = JSON.parse(localStorage.getItem("dopetone_cart")||"[]"); window.location.href = cart.length===0 ? "licence-page.html" : `licence-page.html?id=${cart[0].id}`; };
+  document.querySelectorAll("#cartBtn, #mobileCartBtn, .cart-btn").forEach(b=>{ const t = b.closest('a,button')||b; t.onclick = go; if(t.tagName==='A') t.removeAttribute('href'); });
 }
-
 document.addEventListener('DOMContentLoaded', bootApp);
 </script>
-
 </body>
 </html>

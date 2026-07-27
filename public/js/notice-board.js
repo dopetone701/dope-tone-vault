@@ -730,49 +730,14 @@ setInterval(()=>{
   let originalSendNext = null;
   let bodyTop = 0;
 
-  function ensureFsUI(){
-    const chatWrap = document.getElementById('dtChatWrap');
-    if(!chatWrap) return;
-    // add minimize btn to header
-    let header = chatWrap.querySelector('div');
-    if(header && !document.getElementById('dtFsMinBtn')){
-      const minBtn = document.createElement('button');
-      minBtn.id='dtFsMinBtn';
-      minBtn.innerHTML='⌄';
-      minBtn.style.cssText='margin-left:auto;background:#1e1e1e;border:1px solid #333;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:none';
-      minBtn.onclick = exitFS;
-      header.appendChild(minBtn);
-    }
-    // create mobile bottom bar
-    if(!document.getElementById('dtMobileInputBar')){
-      const bar = document.createElement('div');
-      bar.id='dtMobileInputBar';
-      const cloneInput = document.createElement('input');
-      cloneInput.id='dtFsInputClone';
-      cloneInput.placeholder = INPUT?.placeholder || 'Message...';
-      const minBtn2 = document.createElement('button');
-      minBtn2.id='dtFsMinBtn2';
-      minBtn2.innerHTML='✕';
-      minBtn2.style.cssText='width:40px;height:40px;border-radius:50%;background:#232323;border:1px solid #333;color:#fff;cursor:pointer';
-      minBtn2.onclick = exitFS;
-      bar.appendChild(cloneInput);
-      bar.appendChild(document.getElementById('noticeBoardSend') ? document.getElementById('noticeBoardSend').cloneNode(true) : Object.assign(document.createElement('button'),{textContent:'➤'}));
-      bar.insertBefore(minBtn2, bar.firstChild);
-      document.body.appendChild(bar);
-      
-      // sync clone -> real
-      cloneInput.addEventListener('input', ()=>{ if(INPUT) INPUT.value = cloneInput.value; });
-      cloneInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); if(INPUT) INPUT.value = cloneInput.value; sendChat(); setTimeout(()=>{ cloneInput.value=''; cloneInput.focus(); },100); } });
-      bar.lastChild.onclick = ()=>{ if(INPUT) INPUT.value = cloneInput.value; sendChat(); cloneInput.value=''; cloneInput.focus(); };
-    }
-  }
+  
 
   function enterFS(){
     if(!isMobile()) return;
     const chatWrap = document.getElementById('dtChatWrap');
     const mobBar = document.getElementById('dtMobileInputBar');
     if(!chatWrap) return;
-    ensureFsUI();
+   
     
     bodyTop = window.scrollY;
     document.body.classList.add('dt-chat-fs');
@@ -813,9 +778,7 @@ setInterval(()=>{
     window.hideChatSmooth = function(){ if(document.getElementById('dtChatWrap')?.classList.contains('dt-fs-active')) return; origHide(); };
   };
 
-  const iv = setInterval(()=>{ if(document.getElementById('dtChatWrap') && INPUT){ clearInterval(iv); ensureFsUI(); attach(); } }, 500);
-  window.addEventListener('resize', ()=>{ if(!isMobile()) exitFS(); });
-  window.exitMobileChatFS = exitFS; // global for you
+  
 })();
 
 console.log("DopeAI NOTICE BOARD v5 PRO PST STYLE - playable + disappear on select");

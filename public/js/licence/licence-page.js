@@ -19,20 +19,6 @@ const safeParse = (key, fallback) => {
 const safeSetItem = (k,v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} };
 const safeGet = (id) => document.getElementById(id);
 
-// 🔥 STABLE ANON ID - FIXES 104 GHOST
-if(!localStorage.getItem('dopetone_anon_id')){
-  localStorage.setItem('dopetone_anon_id', 'anon_'+Math.random().toString(36).slice(2,9)+Date.now().toString(36));
-}
-const getAnonId = () => localStorage.getItem('dopetone_anon_id');
-const getUserId = () => {
-  try{
-    const u = JSON.parse(localStorage.getItem('dopetone_user')||localStorage.getItem('user')||'null');
-    if(u?.id) return String(u.id);
-    if(window.__USER__?.id) return String(window.__USER__.id);
-  }catch{}
-  return getAnonId();
-};
-
 const getMode = (b) => {
   if (!b) return 'paid';
   let m = (b.monetization_mode || b.monetizationMode || '').toLowerCase().trim();
@@ -69,7 +55,7 @@ let selectedLicence = null;
 let activeCartBeat = null;
 let beatsCache = null;
 let beatsCacheTime = 0;
-let isRenderingCart = false;
+let isRenderingCart = false; // 🔥 FIX STOP LOOP
 
 function applyDynamicBG(image){
   const bg = document.getElementById("beatBg");
@@ -82,10 +68,15 @@ function applyDynamicBG(image){
   bg.style.backgroundImage = `url(${image})`;
   bg.classList.add("active");
 }
+
 function resetBG(){
   const bg = document.getElementById("beatBg");
-  if(bg){ bg.classList.remove("active"); bg.style.backgroundImage = "none"; }
+  if(bg){
+    bg.classList.remove("active");
+    bg.style.backgroundImage = "none";
+  }
 }
+
 function armGlobalPlayer(beat){
   if(!beat) return;
   beat = ensureMode(beat);
@@ -127,6 +118,12 @@ function armGlobalPlayer(beat){
 }
 
 window.addEventListener("load", async () => {
+    const earlyCart = safeParse("dopetone_cart", []);
+    if(earlyCart.length>0){
+      document.body.classList.remove("empty-mode");
+      document.body.classList.add("active-mode");
+    }
+    setupCheckout();
     setupCheckout();
     setupPlayer();
     setupLike();
@@ -161,7 +158,7 @@ window.addEventListener("load", async () => {
         await loadBeat();
     }
     checkEmptyState();
-    renderCartBeatRow();
+    renderCartBeatRow(); // only here + on cart change
     updateSelectedBar();
     updateCheckoutTheme();
     setTimeout(() => document.querySelector(`[data-id="${beatId}"]`)?.classList.add("active"), 200);
@@ -183,8 +180,8 @@ async function loadBeat(){
             }
             const freshBeat = beatsCache.find(b => String(b.id)==String(beatId)) || cartBeat;
             window.currentBeat = ensureMode({
-          ...cartBeat,
-          ...freshBeat,
+           ...cartBeat,
+           ...freshBeat,
                 monetization_mode: cartBeat.monetization_mode || freshBeat.monetization_mode || 'paid',
                 play_count: freshBeat.play_count || 0,
                 price: freshBeat.price || cartBeat.price || 29.99
@@ -237,6 +234,7 @@ function updateBeatUI(beat) {
     playEl.textContent = `${plays.toLocaleString()} plays`;
     playEl.style.cssText = 'display:block;opacity:1;color:#b3b3b3;text-align:center;margin-top:8px';
     updatePrices(beat);
+    // 🔥 REMOVED renderCartBeatRow() FROM HERE - WAS CAUSING LOOP
     renderSimilarTracks([beat]);
     loadGlobalLikeCount(beat.id);
     setTimeout(forceTitle, 100);
@@ -245,7 +243,6 @@ function updateBeatUI(beat) {
 
 function updateCartCount(){
     const cart = safeParse("dopetone_cart", []);
-    localStorage.setItem('dopetone_cart_count', String(cart.length));
     document.querySelectorAll(".cart-count").forEach(el => { el.textContent = cart.length; });
     const goToCart = () => {
         if(cart.length === 0){ window.location.href = "licence-page.html"; return; }
@@ -253,8 +250,6 @@ function updateCartCount(){
     };
     const cartBtn = safeGet("cartBtn"); if(cartBtn) cartBtn.onclick = (e)=>{ e.preventDefault(); goToCart(); };
     const mobileCartBtn = safeGet("mobileCartBtn"); if(mobileCartBtn) mobileCartBtn.onclick = (e)=>{ e.preventDefault(); goToCart(); };
-    // sync to charts
-    window.dispatchEvent(new CustomEvent('cc_player_cart_sync', { detail:{ total: cart.length } }));
 }
 
 function checkEmptyState(){
@@ -307,7 +302,7 @@ function setupLicenceSelection(){
 }
 
 function renderCartBeatRow(){
-    if(isRenderingCart) return;
+    if(isRenderingCart) return; // 🔥 STOP UNSTOPABLE LOOP
     isRenderingCart = true;
     const wrap = document.querySelector("#cartBeatRow"); if(!wrap){ isRenderingCart=false; return; }
     let cart = safeParse("dopetone_cart", []).map(ensureMode);
@@ -395,9 +390,7 @@ function setupPlayer(){
         if(window.globalPlayer?.play){ window.globalPlayer.play(0, [licenceBeat], `licence_${beat.id}`); }
         else if(gpAudio){ gpAudio.src = licenceBeat.mp3_url; await gpAudio.play().catch(()=>{}); }
         setPause();
-        try{
-          await fetch(`${STATS_API}/api/stats/event`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ beatId: parseInt(beat.id), eventType:'play', user_id: getUserId(), anon_id: getAnonId() }) });
-        }catch{}
+        try{ await fetch(`${API_URL}/beats/${beat.id}/play`, { method: 'POST' }); }catch{}
     };
     document.addEventListener("playerPlay", ()=>{ const curId = window.__LICENCE_ACTIVE_ID__ || window.__CURRENT_BEAT__?.id; const bId = window.currentBeat?.id; if(String(curId) === String(bId)) setPause(); });
     document.addEventListener("playerPause", ()=> setPlay());
@@ -449,7 +442,7 @@ function setupLike(){
         updateLikeUI();
         window.refreshMobileHeart?.();
         showToast(nowLiked? '❤️ ' : '💔');
-        fetch(`${STATS_API}/api/stats/${nowLiked?'event':'untrack'}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ beatId: parseInt(beat.id), beat_id: parseInt(beat.id), eventType: nowLiked?'like':'like', event_type: 'like', user_id: getUserId(), anon_id: getAnonId() }) }).catch(()=>{});
+        try{ fetch(`${STATS_API}/api/stats/event`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({beatId: parseInt(beat.id), eventType:'like'}) }).catch(()=>{}); }catch{}
     };
     window.updateLicenceLikeUI = updateLikeUI;
 }
@@ -457,32 +450,22 @@ function setupLike(){
 function setupAddToCart(){
     const addBtn = safeGet("addBtn"); if(!addBtn) return;
     addBtn.onclick = async () => {
-        if(!window.currentBeat) return;
-        let cart = safeParse("dopetone_cart", []);
+        if(!window.currentBeat) return; let cart = safeParse("dopetone_cart", []);
         const beat = ensureMode({ id: window.currentBeat.id, title: window.currentBeat.title, cover: window.currentBeat.cover, cover_url: window.currentBeat.cover_url, genre: window.currentBeat.genre, bpm: window.currentBeat.bpm, type: window.currentBeat.type_beat || window.currentBeat.type || "--", type_beat: window.currentBeat.type_beat || window.currentBeat.type || "--", mood: window.currentBeat.mood || "--", key: window.currentBeat.key || "--", audio: window.currentBeat.audio, play_count: window.currentBeat.play_count || 0, monetization_mode: window.currentBeat.monetization_mode || getMode(window.currentBeat) || 'paid', has_free_tagged: window.currentBeat.has_free_tagged || 0, price: window.currentBeat.price||29.99 });
-        if(cart.find(item => String(item.id)==String(beat.id))) { showToast('Already in cart'); return; }
+        if(cart.find(item => String(item.id)==String(beat.id))) return;
         cart.push(beat); safeSetItem("dopetone_cart", cart);
-        localStorage.setItem('dopetone_cart_count', String(cart.length));
-        // 🔥 BACKEND - PROPER IDS
-        try {
-          await fetch(`${STATS_API}/api/stats/event`, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ beatId: parseInt(beat.id), beat_id: parseInt(beat.id), eventType:'cart', event_type:'cart', user_id: getUserId(), anon_id: getAnonId() })
-          });
-        } catch {}
+        try { await fetch(`${WORKER_URL}/api/stats/track`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ beat_id: parseInt(beat.id), event_type: 'cart' }) }); } catch {}
         if(cart.length === 1){ activeCartBeat = beat; beatId = beat.id; switchActiveBeat(beat); }
         renderCartBeatRow();
         updateCartCount();
         document.body.classList.remove("empty-mode");
-        showToast('Added to cart 🛒');
-        window.dispatchEvent(new CustomEvent('cc_cart_updated', { detail:{ beat_id: beat.id, beatId: beat.id, count: cart.length } }));
     };
 }
 
 async function switchActiveBeat(beat){
     const fixed = ensureMode(beat);
     if(String(fixed.id) === String(window.currentBeat?.id)) {
+        // already active - just highlight
         document.querySelectorAll(".cart-beat-card").forEach(c=> c.classList.toggle("active", String(c.dataset.id)===String(fixed.id)));
         return;
     }
@@ -496,6 +479,7 @@ async function switchActiveBeat(beat){
     const savedLicence = selectedLicences[fixed.id];
     document.querySelectorAll(".licence-card").forEach(card => card.classList.remove("active","faded"));
     if(savedLicence){ document.querySelectorAll(".licence-card").forEach(card => { const btn=card.querySelector(".pay-btn"); if(btn?.dataset.name===savedLicence.name) card.classList.add("active"); else card.classList.add("faded"); }); }
+    // 🔥 FIX: don't re-render row, just update active class
     document.querySelectorAll(".cart-beat-card").forEach(card => {
         card.classList.toggle("active", String(card.dataset.id)===String(fixed.id));
     });
@@ -551,20 +535,24 @@ function updateSelectedBar(){
 
 function removeBeatFromCart(event, id){
     event.stopPropagation(); event.preventDefault();
-    const anon_id = getAnonId();
-    const user_id = getUserId();
+
+    // 🔥 D1 DELETE - PRO
+    const anon_id = localStorage.getItem('dopetone_anon_id') || 'anon';
+    const user_id = (()=>{ try{ const u=JSON.parse(localStorage.getItem('dopetone_user')||'null'); return u?.id||null }catch{return null} })();
     fetch(`${STATS_API}/api/stats/untrack`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ beat_id: parseInt(id), beatId: parseInt(id), event_type:'cart', eventType:'cart', user_id, anon_id })
+      body: JSON.stringify({ beat_id: parseInt(id), event_type:'cart', user_id: user_id||anon_id, anon_id })
     }).catch(()=>{});
 
+    // local
     let cart = safeParse("dopetone_cart", []); cart = cart.filter(beat => String(beat.id)!=String(id)); safeSetItem("dopetone_cart", cart);
-    localStorage.setItem('dopetone_cart_count', String(cart.length));
     let licences = safeParse("dopetone_licences", {}); delete licences[id]; safeSetItem("dopetone_licences", licences);
     let hist = safeParse("dopetone_history",[]); hist = hist.filter(h=>String(h.beat_id)!==String(id)); safeSetItem("dopetone_history", hist);
 
-    window.dispatchEvent(new CustomEvent('cc_cart_removed', { detail:{ beat_id:id, beatId:id, count: cart.length } }));
+    // 🔥 CHARTS SUBTRACT D1
+    window.dispatchCartRemoved?.(id);
+    window.dispatchEvent(new CustomEvent('cc_cart_removed', { detail:{ beat_id:id, beatId:id } }));
 
     updateCartCount();
     if(cart.length === 0){
@@ -583,6 +571,7 @@ function removeBeatFromCart(event, id){
     if(String(id)===String(beatId)){ const next=ensureMode(cart[0]); beatId=next.id; activeCartBeat=next; const u=new URL(location); u.searchParams.set("id",beatId); history.replaceState({}, "", u); switchActiveBeat(next); }
     renderCartBeatRow(); checkEmptyState(); updateSelectedBar(); updateCheckoutTheme();
 }
+
 
 function initCartScroll() {
     const slider = safeGet("cartBeatRow"); if(!slider) return; let isDown=false,startX,scrollLeft;
@@ -613,3 +602,67 @@ function applyMonetizationRules(beat) {
 window.removeBeatFromCart = removeBeatFromCart; window.renderCartBeatRow = renderCartBeatRow;
 window.updateCartCount = updateCartCount; window.checkEmptyState = checkEmptyState;
 window.switchActiveBeat = switchActiveBeat; window.updatePrices = updatePrices; window.updateSelectedBar = updateSelectedBar;
+
+
+
+function revealUI(){
+  const loader = document.getElementById('pageLoader');
+  document.body.classList.add('is-ready');
+  if(loader){
+    loader.classList.add('hide');
+    setTimeout(()=>loader.remove(), 400);
+  }
+}
+
+// call reveal after everything ready
+// REPLACE your last lines in window load:
+window.addEventListener("load", async () => {
+    const earlyCart = safeParse("dopetone_cart", []);
+    if(earlyCart.length>0){
+      document.body.classList.remove("empty-mode");
+      document.body.classList.add("active-mode");
+    }
+    setupCheckout();
+    setupPlayer();
+    setupLike();
+    setupShare();
+    setupLicenceSelection();
+    setupAddToCart();
+    updateCartCount();
+    const cart = safeParse("dopetone_cart", []).map(ensureMode);
+    if (!beatId && cart.length > 0) {
+        const b = cart[0];
+        beatId = b.id;
+        activeCartBeat = b;
+        window.currentBeat = b;
+        window.__CURRENT_BEAT__ = b;
+        safeGet("title")&&(safeGet("title").textContent = b.title);
+        safeGet("cover")&&(safeGet("cover").src = b.cover_url || b.cover || "images/logo.png");
+        safeGet("genre")&&(safeGet("genre").textContent = b.genre || "--");
+        safeGet("bpm")&&(safeGet("bpm").textContent = b.bpm || "--");
+        safeGet("type")&&(safeGet("type").textContent = b.type_beat || b.type || "--");
+        safeGet("mood")&&(safeGet("mood").textContent = b.mood || "--");
+        safeGet("key")&&(safeGet("key").textContent = b.key || "--");
+        document.body.classList.add("active-mode");
+        document.body.classList.remove("empty-mode");
+        applyDynamicBG(b.cover_url || b.cover);
+        armGlobalPlayer(b);
+        history.replaceState({}, "", `?id=${b.id}`);
+        renderSimilarTracks([b]);
+        updatePrices(b);
+        applyMonetizationRules(b);
+        loadGlobalLikeCount(b.id);
+    } else if (beatId) {
+        await loadBeat();
+    }
+    checkEmptyState();
+    renderCartBeatRow();
+    updateSelectedBar();
+    updateCheckoutTheme();
+    setTimeout(() => document.querySelector(`[data-id="${beatId}"]`)?.classList.add("active"), 200);
+    setTimeout(initCartScroll, 500);
+    setTimeout(forceTitle, 2000);
+
+    // SUNO CLEAN REVEAL
+    requestAnimationFrame(()=> setTimeout(revealUI, 120));
+});
