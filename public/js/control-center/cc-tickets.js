@@ -34,9 +34,9 @@ export async function initTickets() {
   if (exportBtn) exportBtn.onclick = () => exportTicketsCSV();
 
   // Filter pills
-  document.querySelectorAll('#ticketFilterBar.filter-pill').forEach(btn => {
+document.querySelectorAll('#ticketFilterBar .filter-pill').forEach(btn => {
     btn.onclick = () => {
-      document.querySelectorAll('#ticketFilterBar.filter-pill').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('#ticketFilterBar .filter-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeTicketFilter = btn.dataset.filter;
       renderTickets({ success: true, tickets: allTicketsRaw });
