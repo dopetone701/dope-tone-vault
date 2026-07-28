@@ -1,10 +1,10 @@
-// help-page.js - CONNECTED TO TICKETS API - FINAL
-import { MAIN_API } from '../cc-config.js'; // keep if you have
+// help-page.js - USER FRIENDLY - NO TICKET WORD - CLEARS ALL
 
 const TICKETS_API = "https://support-tickets-api.dopetone701.workers.dev";
+const EMAILS_API = "https://emails-api.dopetone701.workers.dev";
 
 document.addEventListener('DOMContentLoaded', () => {
-  // FAQ accordion - fixed minus icon
+  // FAQ
   document.querySelectorAll('.acc h4').forEach(header => {
     header.style.cursor = 'pointer';
     header.addEventListener('click', () => {
@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Top cards scroll
   document.querySelectorAll('[data-scroll]').forEach(card=>{
     card.style.cursor='pointer';
     card.addEventListener('click',()=>{
@@ -35,34 +34,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Search
   const searchInput = document.getElementById('searchInput');
   if(searchInput){
     searchInput.addEventListener('input', (e)=>{
       const q = e.target.value.toLowerCase();
       document.querySelectorAll('.acc, #licenseSection, #termsSection, #privacySection').forEach(el=>{
         const txt = el.textContent.toLowerCase();
-        el.style.display = txt.includes(q) || q==='' ? '' : 'none';
+        el.style.display = txt.includes(q) || q===''? '' : 'none';
       });
     });
   }
 
-  // ===== TICKET SUBMIT - CONNECTED TO YOUR cc-tickets.js SYSTEM =====
+  // CATEGORY MESSAGES - user friendly, no ticket word
+  const categoryMessages = {
+    "Order / Delivery": "📦 Got it! We're checking your order delivery status. You'll get an update in your email in under 1 hour.",
+    "License Question": "📄 License question received! Our team will clarify your license and email you the details shortly.",
+    "Payment Issue": "💳 Payment issue noted! We're looking into it now. You'll get a confirmation email in a minute and we fix it in <1h.",
+    "File / Stems Issue": "🎵 File issue received! We're checking your download link / stems. Fresh link coming to your email soon.",
+    "Custom Beat": "🔥 Custom beat request! Love it. We're reviewing and will reply to your email with next steps.",
+    "Other": "✅ Message sent! We got you - our team will reply to your email in under 1 hour."
+  };
+
   const sendBtn = document.getElementById('sendTicket');
   if(sendBtn){
+    sendBtn.textContent = 'SEND MESSAGE'; // CHANGE BUTTON TEXT
+
     sendBtn.addEventListener('click', async () => {
-      const name = document.getElementById('tName')?.value.trim();
-      const email = document.getElementById('tEmail')?.value.trim();
-      const orderId = document.getElementById('tOrder')?.value.trim();
-      const category = document.getElementById('tCat')?.value;
-      const message = document.getElementById('tMsg')?.value.trim();
+      const nameEl = document.getElementById('tName');
+      const emailEl = document.getElementById('tEmail');
+      const orderEl = document.getElementById('tOrder');
+      const catEl = document.getElementById('tCat');
+      const msgEl = document.getElementById('tMsg');
       const statusEl = document.getElementById('ticketStatus');
 
-      if(!name || !email || !message){
+      const name = nameEl?.value.trim();
+      const email = emailEl?.value.trim();
+      const orderId = orderEl?.value.trim();
+      const category = catEl?.value;
+      const message = msgEl?.value.trim();
+
+      if(!name ||!email ||!message){
         if(statusEl){
           statusEl.style.display='block';
           statusEl.style.color='#ef4444';
-          statusEl.textContent='Please fill name, email and message.';
+          statusEl.textContent='Please fill name, email and your message.';
         }
         return;
       }
@@ -72,52 +87,68 @@ document.addEventListener('DOMContentLoaded', () => {
       if(statusEl){
         statusEl.style.display='block';
         statusEl.style.color='#888';
-        statusEl.textContent='Sending to vault...';
+        statusEl.textContent='Sending your message...';
       }
 
       try{
+        // 1. CREATE TICKET IN D1 (backend still uses tickets, user doesn't see)
         const res = await fetch(`${TICKETS_API}/api/tickets/create`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
-            name: name,
-            username: name,
-            email: email,
+            name, username: name, email,
             subject: `${category} - Order ${orderId || 'no-id'}`,
             message: `Category: ${category}\nOrder: ${orderId}\nEmail: ${email}\n\n${message}`,
-            priority: category==='Payment Issue' || category==='Order / Delivery' ? 'High' : 'Medium',
-            status: 'open',
-            source: 'help_page',
-            created_at: new Date().toISOString()
+            priority: category==='Payment Issue' || category==='Order / Delivery'? 'High' : 'Medium',
+            status: 'open', source: 'help_page', created_at: new Date().toISOString()
           })
         });
-
         const data = await res.json();
-        if(!res.ok || !data.success) throw new Error(data.error || 'Failed');
+        if(!res.ok ||!data.success) throw new Error(data.error || 'Failed');
+        const ticketId = data.id || '';
 
+        // 2. SEND REAL TIME EMAIL FROM creators@
+               // 2. SEND REAL TIME EMAIL FROM creators@ - PRO TEMPLATE
+        try{
+          await fetch(`${EMAILS_API}/api/emails/bulk`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              emails: [email],
+              name: name,
+              category: category, // triggers smart template in emails-api
+              orderId: orderId,
+              ticketId: ticketId
+            })
+          });
+        }catch(e){ console.log('Email failed but ticket saved', e) }
+
+        // 3. USER FRIENDLY MESSAGE - NO TICKET WORD
+        const friendlyMsg = categoryMessages[category] || categoryMessages["Other"];
         if(statusEl){
           statusEl.style.color='#10b981';
-          statusEl.textContent='✅ Ticket sent! We reply in <12h. Check email. ID: ' + (data.id || data.ticket?.id || '');
+          statusEl.innerHTML = `${friendlyMsg}<br><span style="font-size:11px;color:#666">Email confirmation sent to ${email} from creators@dopetonevault.com</span>`;
         }
-        // clear
-        document.getElementById('tMsg').value='';
-        document.getElementById('tOrder').value='';
 
-        // trigger live refresh in dashboard if open in other tab
+        // 4. CLEAR ALL FIELDS - NAME, EMAIL, ORDER, MESSAGE, CATEGORY RESET
+        if(nameEl) nameEl.value='';
+        if(emailEl) emailEl.value='';
+        if(orderEl) orderEl.value='';
+        if(msgEl) msgEl.value='';
+        if(catEl) catEl.selectedIndex = 0; // reset to first category
+
         window.dispatchEvent(new CustomEvent('cc_dashboard_refresh'));
-        
-        // also refresh tickets list if this page has it
         if(window.refreshTickets) window.refreshTickets();
 
       }catch(err){
         console.error(err);
         if(statusEl){
           statusEl.style.color='#ef4444';
-          statusEl.textContent='❌ Failed: ' + err.message + ' - Try WhatsApp +971524082460';
+          statusEl.textContent='❌ Could not send - Please message us on WhatsApp +971524082460';
         }
       }finally{
         sendBtn.disabled=false;
-        sendBtn.textContent='SEND TICKET';
+        sendBtn.textContent='SEND MESSAGE'; // keep as MESSAGE not TICKET
       }
     });
   }
