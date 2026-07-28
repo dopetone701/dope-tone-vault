@@ -1,17 +1,12 @@
-// checkout-paypal.js - PAYPAL PRO MAX - 100% D1 + WEBHOOK SAFE - CLONE OF STRIPE
-// Does NOT clear cart. success.html + webhook will ship to D1 then clear.
-// Fixes: safeParse, toast not alert, AbortController, single bind, no double checkout
-
+// checkout-paypal.js - PAYPAL PRO MAX - 50% PROMO ARMED - D1 SAFE
 const PAYPAL_WORKER_URL = 'https://pay-pal-api.dopetone701.workers.dev';
-const MAIN_API_URL = 'https://dope-tone-api.dopetone701.workers.dev';
-const API_URL = 'https://api.dopetonevault.com';
+const PROMO_API = 'https://emails-api.dopetone701.workers.dev';
 
 const calcPro = (b) => Number((Number(b) * 49 / 19).toFixed(2));
 const calcExclusive = (b) => Number((Number(b) * 199 / 19).toFixed(2));
 
 let isCheckingOut = false;
 
-// ==================== UTILS ====================
 const safeParse = (key, fallback) => {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
   catch { return fallback; }
@@ -30,7 +25,6 @@ function proToast(msg, type = 'info'){
   clearTimeout(el._t); el._t = setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=>el.style.display='none',300); }, 4000);
 }
 
-// ==================== SPINNER CSS ====================
 if(!document.getElementById('dt-checkout-style')){
   const s = document.createElement('style'); s.id = 'dt-checkout-style';
   s.textContent = `
@@ -43,40 +37,56 @@ if(!document.getElementById('dt-checkout-style')){
   document.head.appendChild(s);
 }
 
-// ==================== MAIN CHECKOUT - PAYPAL ====================
 export async function createStripeCheckout(e){
   if(e){ e.preventDefault(); e.stopPropagation(); }
-  if(isCheckingOut){ console.log("[DT] already checking out"); return; }
+  if(isCheckingOut) return;
 
   let licences = safeParse("dopetone_licences", {});
   let cart = safeParse("dopetone_cart", []);
-
   if(!Array.isArray(cart) || cart.length===0){ proToast("Cart is empty", "error"); return; }
 
   let beatsToCheckout = cart.filter(b => licences[String(b.id)] || licences[b.id]);
-  if(beatsToCheckout.length===0){ proToast("Select a licence first - click Basic / Pro / Exclusive", "error"); return; }
+  if(beatsToCheckout.length===0){ proToast("Select a licence first", "error"); return; }
 
-  // Filter out FREE for PayPal (PayPal does not allow $0)
+  // === CHECK PROMO FROM LOCAL STORAGE / INPUT ===
+  let activePromoCode = localStorage.getItem('dopetone_active_promo') || document.getElementById('promoInput')?.value?.toUpperCase() || '';
+  let discountMult = 1;
+  let promoValid = null;
+
+  if(activePromoCode){
+    try{
+      const r = await fetch(`${PROMO_API}/api/promo/validate`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({code: activePromoCode})
+      });
+      const d = await r.json();
+      if(d.valid){
+        promoValid = d;
+        discountMult = (100 - d.discount)/100; // 0.5 for 50%
+        proToast(`🔥 ${activePromoCode} - ${d.discount}% OFF applied`, "ok");
+      } else {
+        proToast(`Promo ${activePromoCode} invalid: ${d.error}`, "error");
+        activePromoCode=''; localStorage.removeItem('dopetone_active_promo');
+      }
+    }catch{}
+  }
+
   const hasPaid = beatsToCheckout.some(b=>{
     const lic = licences[String(b.id)] || licences[b.id];
     return lic && lic.name!=='FREE' && lic.name!=='Free' && Number(lic.price)>0;
   });
 
-  if(!hasPaid){
-    proToast("Free beats don't need checkout - downloading...", "ok");
-    return;
-  }
+  if(!hasPaid){ proToast("Free beats don't need checkout", "ok"); return; }
 
   isCheckingOut = true;
   const btn = document.getElementById('checkoutBtn');
   const originalHTML = btn ? btn.innerHTML : '';
-
   if(btn){
     btn.disabled = true; btn.classList.add('is-loading');
     btn.innerHTML = `Redirecting to PayPal <span class="dt-gear">⚙️</span>`;
   }
 
-  // Recalculate prices server-truth style to prevent tampering
+  // Recalculate with 50% math if promo valid
   let licencesToSend = {};
   beatsToCheckout.forEach(b=>{
     const lic = licences[String(b.id)] || licences[b.id];
@@ -87,50 +97,53 @@ export async function createStripeCheckout(e){
     if(lic.name === 'Exclusive') finalPrice = calcExclusive(base);
     if(lic.name === 'Basic' && !lic.price) finalPrice = base;
     if(lic.name === 'FREE' || lic.name === 'Free' || finalPrice<=0) return;
-    licencesToSend[b.id] = { name: lic.name, price: finalPrice, title: b.title || b.beat_title || `Beat ${b.id}` };
+    
+    // APPLY 50% DISCOUNT REAL TIME
+    if(promoValid){
+      finalPrice = Number((finalPrice * discountMult).toFixed(2));
+    }
+
+    licencesToSend[b.id] = { name: lic.name, price: finalPrice, title: b.title || b.beat_title || `Beat ${b.id}`, original_price: lic.price };
   });
 
   if(Object.keys(licencesToSend).length===0){
-    proToast("No paid licences selected", "error");
+    proToast("No paid licences", "error");
     if(btn){ btn.disabled=false; btn.classList.remove('is-loading'); btn.innerHTML=originalHTML; }
     isCheckingOut=false; return;
   }
 
-  // === SAVE PENDING - FOR success.html FALLBACK ===
   const pendingPayload = {
     timestamp: Date.now(),
     beats: beatsToCheckout,
     licences: licencesToSend,
-    user_id: localStorage.getItem("dopetone_user_id") || localStorage.getItem("dt_user_id") || "anonymous"
+    promo_code: activePromoCode || null,
+    discount_applied: promoValid?.discount || 0,
+    user_id: localStorage.getItem("dopetone_user_id") || "anonymous"
   };
   safeStringify("dopetone_pending_checkout", pendingPayload);
-  console.log("✅ [DT] Pending saved PAYPAL", pendingPayload);
 
-  // === SAVE HISTORY CHAIN FOR D1 SHIP ===
   let history = safeParse("dopetone_history", []);
   beatsToCheckout.forEach(b=>{
     const lic = licencesToSend[b.id]; if(!lic) return;
-    const exists = history.find(h=> String(h.beat_id)===String(b.id) && h.license_type===lic.name);
-    if(!exists){
+    if(!history.find(h=> String(h.beat_id)===String(b.id) && h.license_type===lic.name)){
       history.push({
         beat_id: parseInt(b.id),
-        beat_title: b.title || b.beat_title || '',
+        beat_title: b.title || '',
         license_type: lic.name,
         amount: Math.round(Number(lic.price)*100),
         timestamp: Date.now(),
-        user_id: pendingPayload.user_id
+        user_id: pendingPayload.user_id,
+        promo_code: activePromoCode || null
       });
     }
   });
   safeStringify("dopetone_history", history);
 
-  // === CALL PAYPAL WORKER WITH TIMEOUT ===
   const controller = new AbortController();
   const timeout = setTimeout(()=>controller.abort(), 15000);
 
   try {
-    console.log("→ Calling PayPal worker:", `${PAYPAL_WORKER_URL}/create-paypal-order`);
-    const customerEmail = localStorage.getItem("dopetone_user_email") || localStorage.getItem("dt_email") || document.querySelector('#customerEmail')?.value || document.querySelector('input[type="email"]')?.value || null;
+    const customerEmail = localStorage.getItem("dopetone_user_email") || document.querySelector('#customerEmail')?.value || null;
     const customerName = localStorage.getItem("dopetone_user_name") || document.querySelector('#customerName')?.value || "";
 
     const res = await fetch(`${PAYPAL_WORKER_URL}/create-paypal-order`, {
@@ -143,69 +156,55 @@ export async function createStripeCheckout(e){
         email: customerEmail,
         customer_email: customerEmail,
         name: customerName,
-        customer_name: customerName
+        customer_name: customerName,
+        promo_code: activePromoCode || null,
+        discount: promoValid?.discount || 0
       }),
       signal: controller.signal
     });
 
     clearTimeout(timeout);
-
-    let data;
-    try{ data = await res.json(); } catch { const t = await res.text(); throw new Error(`Worker returned non-JSON: ${t.slice(0,200)}`); }
-
-    if(!res.ok){
-      console.error("❌ Worker error", res.status, data);
-      throw new Error(data.error || data.detail || `Worker ${res.status}`);
-    }
+    let data; try{ data = await res.json(); } catch { const t = await res.text(); throw new Error(t.slice(0,200)); }
+    if(!res.ok) throw new Error(data.error || `Worker ${res.status}`);
 
     if(data.url){
-      console.log("✅ PayPal URL received, redirecting...");
-      proToast("Redirecting to secure PayPal checkout...", "ok");
+      proToast("Redirecting to PayPal...", "ok");
+      // Mark promo as used AFTER redirect will happen via success page, but save for webhook
+      if(activePromoCode){
+        localStorage.setItem('dopetone_pending_promo_use', activePromoCode);
+      }
       setTimeout(()=>{ window.location.href = data.url; }, 350);
       return;
-    } else {
-      throw new Error(data.error || 'No checkout URL returned');
-    }
+    } else throw new Error(data.error || 'No checkout URL');
 
   } catch(err){
     clearTimeout(timeout);
-    const isAbort = err.name === 'AbortError';
-    const msg = isAbort ? 'Worker timeout - check Cloudflare logs' : err.message;
-    console.error("❌ PayPal Checkout failed:", err);
-    proToast(`Checkout failed: ${msg}`, "error");
-
+    proToast(`Checkout failed: ${err.message}`, "error");
     if(btn){
       btn.disabled = false; btn.classList.remove('is-loading');
-      btn.style.pointerEvents = 'auto'; btn.style.cursor = 'pointer';
       btn.innerHTML = originalHTML || `Checkout ${Object.keys(licencesToSend).length} Tracks`;
     }
     isCheckingOut = false;
   }
 }
 
-// ==================== SETUP + REBIND PRO ====================
 export function setupCheckout(){
   if(window.__dt_checkout_bound_paypal) return;
   window.__dt_checkout_bound_paypal = true;
-  console.log("✅ [DT] Checkout bound PAYPAL PRO");
-
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('#checkoutBtn');
     if(btn){ createStripeCheckout(e); }
   }, { capture:true });
-
   const direct = document.getElementById('checkoutBtn');
   if(direct && !direct.dataset.bound){
     direct.dataset.bound="1";
     direct.addEventListener('click', createStripeCheckout);
   }
-
   const observer = new MutationObserver(()=>{
     const b = document.getElementById('checkoutBtn');
     if(b && !b.dataset.bound){
       b.dataset.bound="1";
       b.addEventListener('click', createStripeCheckout);
-      console.log("[DT] Re-bound new checkoutBtn via observer PAYPAL");
     }
   });
   observer.observe(document.body, { childList:true, subtree:true });
@@ -214,12 +213,7 @@ export function setupCheckout(){
 window.createStripeCheckout = createStripeCheckout;
 window.createPaypalCheckout = createStripeCheckout;
 window.setupCheckout = setupCheckout;
-
-// Alias so both names work
 export const createPaypalCheckout = createStripeCheckout;
-export { createStripeCheckout as createStripeCheckoutLegacy };
 
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', setupCheckout); }
 else { setupCheckout(); }
-
-console.log("✅ checkout-paypal.js PRO loaded - PayPal:", PAYPAL_WORKER_URL);

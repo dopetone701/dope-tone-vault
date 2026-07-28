@@ -351,26 +351,56 @@ function setupLicenceSelection(){
     });
 }
 
-function renderCartBeatRow(){
-    if(isRenderingCart) return; // 🔥 STOP UNSTOPABLE LOOP
+async function renderCartBeatRow(){
+    if(isRenderingCart) return;
     isRenderingCart = true;
     const wrap = document.querySelector("#cartBeatRow"); if(!wrap){ isRenderingCart=false; return; }
-    let cart = safeParse("dopetone_cart", []).map(ensureMode);
+
+    // Load full beats catalog for lookup
+    if(!beatsCache){
+      try{
+        const res = await fetch(`${API_URL}/beats`);
+        beatsCache = (await res.json()).map(ensureMode);
+      }catch{ beatsCache = []; }
+    }
+
+    let cart = safeParse("dopetone_cart", []).map(b=>{
+      // FIX: if title is numeric ID, lookup real beat
+      let real = b;
+      if(String(b.title).match(/^\d{8,}/) || String(b.id).match(/^\d{8,}/) &&!b.cover_url){
+        const found = beatsCache.find(x=> String(x.id)===String(b.id) || String(x.id)===String(b.title));
+        if(found) real = {...found,...b, title: found.title, cover_url: found.cover_url||found.cover, cover: found.cover_url||found.cover };
+        else if(String(b.title).match(/^\d{8,}/)){
+          // Still ID - try to fetch RED LIPZ etc from localStorage beats
+          const all = JSON.parse(localStorage.getItem('dopetone_beats')||'[]');
+          const f2 = all.find(x=>String(x.id)===String(b.id));
+          if(f2) real = {...f2,...b, title: f2.title, cover_url: f2.cover_url};
+        }
+      }
+      return ensureMode(real);
+    });
+
+    // Save fixed cart back
+    safeSetItem("dopetone_cart", cart);
+
     wrap.innerHTML = "";
     cart.forEach((beat) => {
         const b = ensureMode(beat);
+        const cover = b.cover_url || b.cover || "images/logo.png";
+        const title = b.title &&!String(b.title).match(/^\d{8,}/)? b.title : (beatsCache.find(x=>String(x.id)===String(b.id))?.title || b.id);
+
         const card = document.createElement("div");
         card.className = "cart-beat-card";
         card.dataset.id = b.id;
         card.dataset.mode = b.monetization_mode;
         if(String(b.id) === String(activeCartBeat?.id || beatId)) card.classList.add("active");
-        card.innerHTML = `<button class="remove-cart-track" data-id="${b.id}">✕</button><img src="${b.cover || b.cover_url || "images/logo.png"}" loading="lazy"><h4>${b.title}</h4><span style="position:absolute;top:4px;left:4px;font-size:8px;padding:2px 4px;border-radius:3px;font-weight:800;color:#fff;background:${b.monetization_mode==='free'?'#3b82f6':b.monetization_mode==='hybrid'?'#f59e0b':'#ff003c'}">${b.monetization_mode.toUpperCase()}</span>`;
+        card.innerHTML = `<button class="remove-cart-track" data-id="${b.id}">✕</button><img src="${cover}" loading="lazy" onerror="this.src='images/logo.png'"><h4 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px">${title}</h4><span style="position:absolute;top:4px;left:4px;font-size:8px;padding:2px 4px;border-radius:3px;font-weight:800;color:#fff;background:${b.monetization_mode==='free'?'#3b82f6':b.monetization_mode==='hybrid'?'#f59e0b':'#ff003c'}">${(b.monetization_mode||'PAID').toUpperCase()}</span>`;
         card.querySelector(".remove-cart-track").onclick = (e) => { e.stopPropagation(); e.preventDefault(); removeBeatFromCart(e, b.id); };
         card.onclick = async () => {
             document.querySelectorAll(".cart-beat-card").forEach(c => c.classList.remove("active"));
             card.classList.add("active");
             await switchActiveBeat(b);
-            const licenceBeat = { id: b.id, title: b.title, cover_url: b.cover || b.cover_url, mp3_url: b.audio || b.mp3_url };
+            const licenceBeat = { id: b.id, title: title, cover_url: cover, mp3_url: b.audio || b.mp3_url };
             window.__LICENCE_BEAT__ = licenceBeat;
             window.__CURRENT_BEAT__ = b;
             armGlobalPlayer(b);
@@ -381,6 +411,7 @@ function renderCartBeatRow(){
     });
     isRenderingCart = false;
 }
+
 
 function updateCheckoutTheme(){
     document.body.classList.remove("selected-free","selected-basic","selected-pro","selected-exclusive");
@@ -716,3 +747,105 @@ window.addEventListener("load", async () => {
     // SUNO CLEAN REVEAL
     requestAnimationFrame(()=> setTimeout(revealUI, 120));
 });
+
+
+
+// === PROMO ENGINE - D1 SYNC + 50% MATH ===
+const PROMO_API = 'https://emails-api.dopetone701.workers.dev';
+let activePromo = null;
+
+async function verifyPromoCode(){
+  const input = document.getElementById('promoInput');
+  const btn = document.getElementById('verifyPromoBtn');
+  const status = document.getElementById('promoStatus');
+  let code = (input.value || localStorage.getItem('dopetone_active_promo') || '').trim().toUpperCase();
+  if(!code){ status.textContent='Enter code e.g. VAULT50-V4OW'; status.style.color='#ffaa00'; return; }
+  
+  btn.textContent='CHECKING...'; btn.disabled=true;
+  status.textContent='Verifying with D1...'; status.style.color='#888';
+
+  try{
+    const res = await fetch(`${PROMO_API}/api/promo/validate`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({code})
+    });
+    const data = await res.json();
+
+    if(!data.valid){
+      status.style.color='#ff4444';
+      status.textContent=`❌ ${data.error} (${code})`;
+      activePromo=null;
+      localStorage.removeItem('dopetone_active_promo');
+      // Reset prices to original
+      document.querySelectorAll('.licence-card .pay-btn').forEach(b=>{
+        if(b.dataset.basePrice){ b.dataset.price = b.dataset.basePrice; }
+      });
+      updatePrices(window.currentBeat);
+      btn.textContent='VERIFY'; btn.disabled=false;
+      return;
+    }
+
+    activePromo = {code, discount: data.discount, expires_at: data.expires_at};
+    localStorage.setItem('dopetone_active_promo', code);
+    const exp = new Date(data.expires_at);
+    status.style.color='#00ff88';
+    status.textContent=`✅ ${code} VERIFIED - ${data.discount}% OFF • Expires ${exp.toLocaleDateString()} • ONE USE`;
+    btn.textContent=`${data.discount}% ARMED ✓`;
+    btn.style.background='#00ff88';
+    
+    // APPLY 50% IN REAL TIME - DO THE MATH
+    applyPromoMath(data.discount);
+
+  }catch(e){
+    status.style.color='#ff4444';
+    status.textContent='Network error: '+e.message;
+  }
+  btn.disabled=false;
+}
+
+function applyPromoMath(discount){
+  const mult = (100-discount)/100; // 0.5
+  document.querySelectorAll('.licence-card').forEach(card=>{
+    const btn = card.querySelector('.pay-btn');
+    const oldEl = card.querySelector('.old');
+    const newEl = card.querySelector('.new');
+    if(!btn) return;
+    if(!btn.dataset.basePrice) btn.dataset.basePrice = btn.dataset.price;
+    const base = parseFloat(btn.dataset.basePrice);
+    const discounted = base * mult;
+    btn.dataset.price = discounted.toFixed(2);
+    if(oldEl) { oldEl.textContent = `$${base.toFixed(2)}`; oldEl.style.textDecoration='line-through'; oldEl.style.opacity='0.5'; }
+    if(newEl) { newEl.textContent = `$${discounted.toFixed(2)}`; newEl.style.color='#00ff88'; }
+  });
+  
+  // Update selected bar total with discount
+  let total=0, licences = safeParse("dopetone_licences",{});
+  Object.values(licences).forEach(l=>{ total += parseFloat(l.price)*mult; });
+  const totalEl = document.getElementById('totalPrice');
+  if(totalEl && total>0) totalEl.textContent = `$${total.toFixed(2)}`;
+}
+
+// Hook
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('verifyPromoBtn')?.addEventListener('click', verifyPromoCode);
+  document.getElementById('promoInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') verifyPromoCode(); });
+  // Auto verify if promo in URL
+  setTimeout(()=>{
+    const p = new URLSearchParams(location.search).get('promo') || localStorage.getItem('dopetone_active_promo');
+    if(p){
+      const inp = document.getElementById('promoInput');
+      if(inp){ inp.value=p.toUpperCase(); verifyPromoCode(); }
+    }
+  }, 1200);
+});
+
+// Also mark promo as used after successful Stripe checkout
+const origCheckout = window.createStripeCheckout;
+if(origCheckout){
+  // You call this in checkout-paypal.js after payment success
+  window.markPromoUsed = async (code)=>{
+    try{
+      await fetch(`${PROMO_API}/api/promo/use`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})});
+    }catch{}
+  };
+}

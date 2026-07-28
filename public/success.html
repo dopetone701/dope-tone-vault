@@ -38,6 +38,8 @@
 <script>
 const PAYPAL_WORKER_URL = 'https://pay-pal-api.dopetone701.workers.dev';
 const STATS_API = 'https://dopetone-stats.dopetone701.workers.dev';
+const PROMO_API = 'https://emails-api.dopetone701.workers.dev';
+
 // === AUTO DETECT LOCAL VS LIVE ===
 const VAULT_URL = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
   ? './vault.html'
@@ -172,9 +174,27 @@ async function init(){
         window.location.href = finalVaultUrl;
       };
 
+           // === PROMO - MARK AS USED (ONE TIME) ===
+      try{
+        const pendingCheckout = safeParse("dopetone_pending_checkout", {});
+        const pendingPromo = localStorage.getItem('dopetone_pending_promo_use') || localStorage.getItem('dopetone_active_promo') || pendingCheckout.promo_code;
+        if(pendingPromo){
+          console.log('[PROMO] Burning code:', pendingPromo);
+          fetch('https://emails-api.dopetone701.workers.dev/api/promo/use', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({code: pendingPromo})
+          }).then(r=>r.json()).then(d=>console.log('[PROMO] Burned:', d)).catch(()=>{});
+          // Clear promo so it can't be reused locally
+          localStorage.removeItem('dopetone_active_promo');
+          localStorage.removeItem('dopetone_pending_promo_use');
+        }
+      }catch(e){ console.log('promo burn fail', e); }
+
       await clearAllLocalHistory(sessionId, purchasedIds);
-      statusEl.textContent=`✅ Revenue secured - $${dollars} - PayPal - cart + D1 cleared`;
+      statusEl.textContent=`✅ Revenue secured - $${dollars} - PayPal - cart + D1 cleared${pendingCheckout?.discount_applied ? ` • ${pendingCheckout.discount_applied}% OFF applied` : ''}`;
       return;
+
     }
 
     window._retryCount++;
