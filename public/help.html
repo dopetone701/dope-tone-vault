@@ -121,6 +121,43 @@
 
 <script type="module" src="./js/help/help-page.js"></script>
 <script>
+// --- HOTFIX FAQ CLICK - works live 100% ---
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.acc h4').forEach(header => {
+    header.style.cursor = 'pointer';
+    header.addEventListener('click', () => {
+      const acc = header.parentElement;
+      const isOpen = acc.classList.contains('open');
+      // close all
+      document.querySelectorAll('.acc').forEach(a => {
+        a.classList.remove('open');
+        const p = a.querySelector('.plus');
+        if(p) p.textContent = '+';
+        const ans = a.querySelector('.ans');
+        if(ans) ans.style.display = 'none';
+      });
+      // open clicked if was closed
+      if(!isOpen){
+        acc.classList.add('open');
+        const p = header.querySelector('.plus');
+        if(p) p.textContent = '−';
+        const ans = acc.querySelector('.ans');
+        if(ans) ans.style.display = 'block';
+      }
+    });
+  });
+  
+  // also top 3 cards scroll
+  document.querySelectorAll('[data-scroll]').forEach(c=>{
+    c.style.cursor='pointer';
+    c.addEventListener('click',()=>{
+      const id=c.dataset.scroll;
+      document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+    });
+  });
+});
+</script>
+<script>
 // smooth scroll from footer grid3 cards
 document.querySelectorAll('[data-scroll]').forEach(c=>c.addEventListener('click',()=>{document.getElementById(c.dataset.scroll).scrollIntoView({behavior:'smooth'})}));
 // faq accordion from old css
