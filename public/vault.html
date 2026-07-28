@@ -45,8 +45,41 @@ a{color:var(--blue)}
 <script>
 const VAULT_API = 'https://vault-orders-api.dopetone701.workers.dev';
 const sid = new URLSearchParams(location.search).get('session_id') || localStorage.getItem('dopetone_last_session_id');
+const params = new URLSearchParams(location.search);
+const promoBeatId = params.get('beat') || params.get('id');
+const promoCode = params.get('promo');
+const autoLicense = params.get('autolicense');
+
+// === NEW: HANDLE 50% EMAIL LINK - ADD TO CART + REDIRECT ===
+if(promoBeatId && promoCode){
+  localStorage.setItem('dopetone_active_promo', promoCode.toUpperCase());
+  localStorage.setItem('dopetone_armed_beat', promoBeatId);
+  // Save promo to D1 for validation later
+  fetch('https://emails-api.dopetone701.workers.dev/api/promo/validate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({code: promoCode})
+  }).catch(()=>{});
+  
+  // Add to cart if not exists
+  let cart = [];
+  try{ cart = JSON.parse(localStorage.getItem('dopetone_cart')||'[]'); }catch{}
+  if(!cart.find(b=>String(b.id)===String(promoBeatId))){
+    // Try to get full beat data from window or create minimal
+    const minimalBeat = { id: String(promoBeatId), title: promoBeatId, cover_url:'', price: 29.99, addedFromEmail: true, promo_code: promoCode };
+    cart.push(minimalBeat);
+    localStorage.setItem('dopetone_cart', JSON.stringify(cart));
+  }
+  
+  // Redirect to licence page armed
+  if(!sid){ // Don't redirect if it's a real paid order with session_id
+    window.location.href = `licence-page.html?id=${encodeURIComponent(promoBeatId)}&promo=${encodeURIComponent(promoCode)}&armed=1`;
+  }
+}
+
 const statusEl = document.getElementById('status');
 const downloadsEl = document.getElementById('downloads');
+// ... rest of your vault.html stays same
+
 
 const RULES = {
   free: { mp3:true, wav:false, stems:false, streams:'No streaming', rights:'Tagged • Non-profit • Practice only' },

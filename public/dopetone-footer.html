@@ -13,14 +13,24 @@
     </div>
     <div class="dt-footer-nav">
       <div class="col"><span>Explore</span><a href="./index.html#beats">Beats</a><a href="./index.html">Samples</a><a href="./index.html#trending">Trending</a></div>
-<div class="col"><span>Support</span><a href="./help.html#faqSection">Help</a><a href="./help.html#ticketSection">Ticket</a><a href="./help.html#licenseSection">License</a></div>
-<div class="col"><span>Legal</span><a href="./help.html#termsSection">Terms</a><a href="./help.html#privacySection">Privacy</a><a href="./help.html#faqSection">FAQ</a></div>
+      <div class="col"><span>Support</span><a href="./help.html#faqSection">Help</a><a href="./help.html#ticketSection">Ticket</a><a href="./help.html#licenseSection">License</a></div>
+      <div class="col"><span>Legal</span><a href="./help.html#termsSection">Terms</a><a href="./help.html#privacySection">Privacy</a><a href="./help.html#faqSection">FAQ</a></div>
       <div class="col"><span>Vault</span><a href="./dt-about.html">About</a><a href="./dt-about.html#contact-vault">Contact</a><a href="https://instagram.com/dopetone701" target="_blank">IG</a></div>
     </div>
     <div class="dt-footer-right">
       <span>Stay in vault</span>
-      <div class="vault-join"><input id="vault-email" placeholder="Email"><button onclick="joinVault()">→</button></div>
-      <div class="pay-row">
+  <div class="vault-join">
+    <input id="vault-email" placeholder="Email">
+    <button onclick="joinVault()">→</button>
+  </div>
+  <!-- TERMS CHECKBOX - HIDDEN AT FIRST -->
+  <div id="vault-terms" style="display:none; align-items:center; gap:6px; margin-top:8px; font-size:10px; opacity:0.7;">
+    <input type="checkbox" id="vault-agree-check" style="width:12px; height:12px; accent-color:#fff;">
+    <label for="vault-agree-check" style="cursor:pointer; letter-spacing:0.3px;">
+      I agree to <a href="./help.html#termsSection" target="_blank" style="text-decoration:underline; color:inherit;">Terms</a> & newsletter
+    </label>
+  </div>
+ <div class="pay-row">
         <div style="background:#fff;color:#1A1F71;font-weight:900;font-size:10px;padding:5px 8px;border-radius:5px;min-width:32px;text-align:center">VISA</div>
         <div class="pay"><img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard"></div>
         <div class="pay pay-pp"><img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal"></div>
@@ -28,6 +38,13 @@
       </div>
     </div>
   </div>
+
+  <!-- EPDF CREDIT CLICKABLE TO GITHUB -->
+  <a href="https://github.com/dopetone701" target="_blank" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 0 12px; font-size:11px; letter-spacing:0.5px; opacity:0.75; text-decoration:none; color:inherit; cursor:pointer;">
+    <img src="./images/logo.png" alt="DOPE TONE" style="width:18px; height:18px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.15);">
+    <span>site built with <span style="color:#ff2d78;">❤️</span> by DOPE TONE</span>
+  </a>
+
   <div class="dt-footer-bottom">
     <small>© 2026 DOPE TONE VAULT</small>
     <small class="dna">SOUND • FUTURE • CULTURE</small>

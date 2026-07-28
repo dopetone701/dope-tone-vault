@@ -316,3 +316,11 @@ body{padding-bottom: 0 !important;}
 #homepagePlaylists:empty{
   display: none !important; /* only hide when empty, show when playlists load */
 }
+
+
+.vault-join button {
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)!important;
+}
+#vault-email {
+  transition: all 0.2s ease!important;
+}

@@ -118,12 +118,39 @@ function armGlobalPlayer(beat){
 }
 
 window.addEventListener("load", async () => {
+    // === 50% EMAIL AUTO-ARM + ADD TO CART ===
+    const urlP = new URLSearchParams(window.location.search);
+    const promoFromUrl = urlP.get('promo');
+    const armedFromUrl = urlP.get('armed') === '1' || urlP.get('autolicense') === '1';
+    const beatFromUrl = urlP.get('id') || urlP.get('beat');
+
+    if(promoFromUrl){
+      localStorage.setItem('dopetone_active_promo', promoFromUrl.toUpperCase());
+      console.log('[PROMO ARMED]', promoFromUrl);
+    }
+
+    // If coming from email link with beat id, add it to cart if not already there
+    if(beatFromUrl){
+      let cart = safeParse("dopetone_cart", []);
+      if(!cart.find(b=> String(b.id)===String(beatFromUrl))){
+        // Try to find full beat data from cache or create minimal
+        const cachedBeats = safeParse("dopetone_beats", []) || window.store?.beats || [];
+        let fullBeat = cachedBeats.find(b=> String(b.id)===String(beatFromUrl));
+        if(!fullBeat){
+          fullBeat = { id: String(beatFromUrl), title: String(beatFromUrl), cover_url: '', price: 29.99, promo_code: promoFromUrl||'' };
+        }
+        cart.push({...ensureMode(fullBeat), addedFromEmail: true, promo_code: promoFromUrl||''});
+        safeSetItem("dopetone_cart", cart);
+        console.log('[CART] Added from email link:', beatFromUrl);
+      }
+      beatId = beatFromUrl; // Force this beat as active
+    }
+
     const earlyCart = safeParse("dopetone_cart", []);
     if(earlyCart.length>0){
       document.body.classList.remove("empty-mode");
       document.body.classList.add("active-mode");
     }
-    setupCheckout();
     setupCheckout();
     setupPlayer();
     setupLike();
@@ -149,7 +176,7 @@ window.addEventListener("load", async () => {
         document.body.classList.remove("empty-mode");
         applyDynamicBG(b.cover_url || b.cover);
         armGlobalPlayer(b);
-        history.replaceState({}, "", `?id=${b.id}`);
+        history.replaceState({}, "", `?id=${b.id}${promoFromUrl?`&promo=${promoFromUrl}`:''}`);
         renderSimilarTracks([b]);
         updatePrices(b);
         applyMonetizationRules(b);
@@ -158,13 +185,36 @@ window.addEventListener("load", async () => {
         await loadBeat();
     }
     checkEmptyState();
-    renderCartBeatRow(); // only here + on cart change
+    renderCartBeatRow();
     updateSelectedBar();
     updateCheckoutTheme();
     setTimeout(() => document.querySelector(`[data-id="${beatId}"]`)?.classList.add("active"), 200);
     setTimeout(initCartScroll, 500);
     setTimeout(forceTitle, 2000);
+
+    // === AUTO FILL PROMO INPUT + AUTO APPLY 50% ===
+    setTimeout(()=>{
+      if(promoFromUrl){
+        const promoInput = document.getElementById('promoInput') || document.querySelector('input[name="promo"]') || document.getElementById('promoCode');
+        if(promoInput){
+          promoInput.value = promoFromUrl.toUpperCase();
+          promoInput.dispatchEvent(new Event('input', {bubbles:true}));
+          promoInput.dispatchEvent(new Event('change', {bubbles:true}));
+          // If you have a validate button, click it
+          const applyBtn = document.getElementById('applyPromoBtn') || document.querySelector('[data-apply-promo]');
+          if(applyBtn) applyBtn.click();
+          console.log('[PROMO] Auto-filled:', promoFromUrl);
+        }
+        // Show badge
+        const badge = document.createElement('div');
+        badge.textContent = `🔥 ${promoFromUrl.toUpperCase()} - 50% OFF ARMED`;
+        badge.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#00ff88;color:#000;padding:8px 14px;border-radius:99px;font-weight:900;font-size:11px;z-index:9999;';
+        document.body.appendChild(badge);
+        setTimeout(()=>badge.remove(), 4000);
+      }
+    }, 900);
 });
+
 
 async function loadBeat(){
     try {
