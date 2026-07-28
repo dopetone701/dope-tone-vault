@@ -1,4 +1,4 @@
-// cc-tickets.js - PRO SPOTIFY / YOUTUBE STYLE - FINAL
+// cc-tickets.js - PRO SPOTIFY / YOUTUBE STYLE - FINAL WORKING - 11 May 2026
 import { MAIN_API } from './cc-config.js';
 
 const TICKETS_API = "https://support-tickets-api.dopetone701.workers.dev";
@@ -20,8 +20,9 @@ export async function initTickets() {
   if (refreshBtn) refreshBtn.onclick = () => refreshTickets();
   if (searchToggle) searchToggle.onclick = () => {
     if (searchInput) {
-      searchInput.style.display = searchInput.style.display === 'none'? 'block' : 'none';
-      if (searchInput.style.display!== 'none') searchInput.focus();
+      const isHidden = searchInput.style.display === 'none' || searchInput.style.display === '';
+      searchInput.style.display = isHidden? 'block' : 'none';
+      if (isHidden) searchInput.focus();
     }
   };
   if (searchInput) searchInput.oninput = (e) => {
@@ -30,13 +31,14 @@ export async function initTickets() {
   };
   if (markAllBtn) markAllBtn.onclick = () => {
     document.querySelectorAll('.ticket-row').forEach(r => r.style.opacity = '0.6');
+    setTimeout(()=>refreshTickets(), 500);
   };
   if (exportBtn) exportBtn.onclick = () => exportTicketsCSV();
 
-  // Filter pills
-document.querySelectorAll('#ticketFilterBar .filter-pill').forEach(btn => {
+  // Filter pills - FIXED SELECTOR
+  document.querySelectorAll('#ticketFilterBar.filter-pill').forEach(btn => {
     btn.onclick = () => {
-document.querySelectorAll('#ticketFilterBar .filter-pill').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#ticketFilterBar.filter-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeTicketFilter = btn.dataset.filter;
       renderTickets({ success: true, tickets: allTicketsRaw });
@@ -58,12 +60,11 @@ export async function loadTickets(silent = false) {
   if (refreshBtn &&!silent) refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
   try {
-    const res = await fetch(`${TICKETS_API}/api/tickets/list?t=${Date.now()}`);
+    const res = await fetch(`${TICKETS_API}/api/tickets/list?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
     if (data.success && data.tickets) {
-      // Detect new tickets for live count
       const newCount = ticketsCache? data.tickets.length - (ticketsCache.data.tickets?.length || 0) : 0;
       const liveCountEl = document.getElementById('ticketLiveCount');
       if (liveCountEl && newCount > 0 && ticketsCache) {
@@ -104,7 +105,7 @@ function renderTickets(data) {
     open: tickets.filter(t => t.status === 'open').length,
     answered: tickets.filter(t => t.status === 'answered').length,
     Critical: tickets.filter(t => (t.priority || '').toLowerCase() === 'critical' || (t.priority || '').toLowerCase() === 'high').length,
-    Resolved: tickets.filter(t => t.status === 'Resolved' || t.status === 'closed').length
+    Resolved: tickets.filter(t => ['resolved','closed'].includes((t.status||'').toLowerCase())).length
   };
   const setCount = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setCount('t_all', counts.all);
@@ -142,12 +143,12 @@ function renderTickets(data) {
     const initial = (t.name||t.username||t.email||'U').charAt(0).toUpperCase();
     const colors = { 'Critical': '#dc2626', 'High': '#ef4444', 'Medium': '#f59e0b', 'Low': '#555' };
     const pColor = colors[t.priority] || '#555';
-    const statusMap = { 'open': { bg:'#ef444422', color:'#ef4444', label:'OPEN' }, 'answered': { bg:'#3b82f622', color:'#3b82f6', label:'REPLIED' }, 'Resolved': { bg:'#10b98122', color:'#10b981', label:'DONE' }, 'closed': { bg:'#222', color:'#666', label:'CLOSED' } };
+    const statusMap = { 'open': { bg:'#ef444422', color:'#ef4444', label:'OPEN' }, 'answered': { bg:'#3b82f622', color:'#3b82f6', label:'REPLIED' }, 'Resolved': { bg:'#10b98122', color:'#10b981', label:'DONE' }, 'resolved': { bg:'#10b98122', color:'#10b981', label:'DONE' }, 'closed': { bg:'#222', color:'#666', label:'CLOSED' } };
     const s = statusMap[t.status] || statusMap['open'];
     const timeAgo = getTimeAgo(t.created_at);
 
     return `
-      <div class="ticket-row" data-id="${t.id}" style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #0f0f0f;background:#080808;transition:background.15s;cursor:pointer">
+      <div class="ticket-row" data-id="${t.id}" style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #0f0f0f;background:#080808;transition:all.15s;cursor:pointer" onmouseover="this.style.background='#0e0e0e';this.querySelector('.ticket-actions').style.opacity='1'" onmouseout="this.style.background='#080808';this.querySelector('.ticket-actions').style.opacity='0'">
         <div style="width:36px;height:36px;border-radius:50%;background:#1a1a1a;border:1px solid #222;display:flex;align-items:center;justify-content:center;color:#666;font-weight:700;font-size:13px;flex-shrink:0">${initial}</div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">
@@ -172,10 +173,10 @@ function renderTickets(data) {
 
 // ===== ACTIONS =====
 window.ccCloseTicket = async function(id) {
-  if (!confirm('Close this ticket?')) return;
+  if (!confirm('Close ticket '+id+'?')) return;
   try {
-    const btn = document.querySelector(`.ticket-row[data-id="${id}"]`);
-    if (btn) btn.style.opacity = '0.3';
+    const row = document.querySelector(`.ticket-row[data-id="${id}"]`);
+    if (row) row.style.opacity = '0.3';
 
     const res = await fetch(`${TICKETS_API}/api/tickets/close`, {
       method: 'POST',
@@ -185,8 +186,6 @@ window.ccCloseTicket = async function(id) {
     const data = await res.json();
     if (!res.ok ||!data.success) throw new Error(data.error||'Failed');
 
-    // Instant remove animation
-    const row = document.querySelector(`.ticket-row[data-id="${id}"]`);
     if (row) {
       row.style.transform = 'translateX(100%)';
       row.style.transition = 'all.3s';
@@ -207,20 +206,20 @@ window.ccCloseTicket = async function(id) {
 
 window.ccOpenTicket = function(id) {
   const ticket = allTicketsRaw.find(t => t.id === id);
-  if (!ticket) return;
-  alert(`Subject: ${ticket.subject}\nFrom: ${ticket.email}\n\n${ticket.message}\n\nStatus: ${ticket.status}`);
+  if (!ticket) return alert('Ticket not found');
+  const view = `ID: ${ticket.id}\nSubject: ${ticket.subject}\nFrom: ${ticket.name||ticket.username} <${ticket.email}>\nPriority: ${ticket.priority}\nStatus: ${ticket.status}\nDate: ${ticket.created_at}\n\n--- MESSAGE ---\n${ticket.message}\n\n--- CATEGORY ---\n${ticket.category||'general'}`;
+  alert(view);
 };
 
 export async function refreshTickets() {
   ticketsCache = null;
-  allTicketsRaw = [];
   const skeleton = document.getElementById('ticketSkeleton');
   if (skeleton) skeleton.style.display = 'block';
   await loadTickets();
 }
 
 function exportTicketsCSV() {
-  if (!allTicketsRaw.length) return alert('No tickets');
+  if (!allTicketsRaw.length) return alert('No tickets to export');
   const csv = ['id,email,subject,status,priority,created_at'].concat(allTicketsRaw.map(t => `"${t.id}","${t.email}","${(t.subject||'').replace(/"/g,'""')}","${t.status}","${t.priority}","${t.created_at}"`)).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
