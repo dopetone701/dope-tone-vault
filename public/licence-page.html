@@ -150,21 +150,33 @@ body.licence-page.is-ready .licence-layout{ opacity:1; transition: opacity .4s e
 <div id="cartBeatRow" class="cart-beat-row"></div>
 <div id="navbarMount"></div>
 <div id="authMount"></div>
-<div class="selected-licence">
-  <div class="selected-top"><h3>Selected Licence</h3><span id="selectedName">None</span></div>
-  
-  <!-- PROMO CODE BOX - 50% REAL TIME -->
-  <div id="promoBoxWrap" style="padding:0 16px;margin-top:12px">
-    <div style="display:flex;gap:8px;align-items:center;background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.25);border-radius:12px;padding:8px 10px">
-      <input id="promoInput" placeholder="VAULT50-XXXX" style="flex:1;background:transparent;border:0;color:#fff;outline:none;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-size:13px" maxlength="14">
-      <button id="verifyPromoBtn" style="background:#00ff88;color:#000;border:0;padding:8px 14px;border-radius:8px;font-weight:900;font-size:12px;cursor:pointer">VERIFY</button>
-    </div>
-    <div id="promoStatus" style="font-size:11px;margin-top:6px;color:#888;min-height:14px"></div>
-  </div>
-
+<div class="selected-licence"><div class="selected-top"><h3>Selected Licence</h3><span id="selectedName">None</span></div>
   <div id="checkout-email-wrap" style="padding:12px 16px 0;"><input id="customerEmail" type="email" placeholder="Email for receipt + downloads" required style="width:100%;padding:12px 14px;background:#111;border:1px solid #333;border-radius:10px;color:#fff;font-size:13px;outline:none;margin-bottom:8px"><input id="customerName" type="text" placeholder="Full name (for receipt)" style="width:100%;padding:12px 14px;background:#111;border:1px solid #333;border-radius:10px;color:#fff;font-size:13px;outline:none"><div id="emailError" style="color:#ff3b3b;font-size:11px;margin-top:6px;display:none">Enter a valid email</div></div>
   <div class="selected-bottom"><div class="total-box"><span>Total</span><strong id="totalPrice">$0</strong></div><button id="checkoutBtn" onclick="createStripeCheckout()">Checkout</button></div>
 </div>
+
+
+<!-- PRO PROMO - BELOW BAR, NOT INSIDE -->
+<div id="promoBoxWrap" style="max-width:440px;margin:16px auto 0;padding:14px 16px;background:#0f1424;border:1px solid rgba(0,255,136,.25);border-radius:14px;font-family:system-ui">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div style="font-size:11px;font-weight:900;color:#00ff88;letter-spacing:1px">PROMO • ONE TRACK ONLY</div>
+    <div id="promoTargetBadge" style="font-size:10px;background:#111;border:1px solid #333;padding:4px 10px;border-radius:99px;color:#888">NO TARGET</div>
+  </div>
+
+  <select id="promoTargetSelect" style="width:100%;background:#0a0a0a;border:1px solid #333;border-radius:10px;padding:12px;color:#fff;font-size:12px;outline:none;margin-bottom:10px">
+    <option value="">-- Select target track first --</option>
+  </select>
+
+  <div style="display:flex;gap:8px">
+    <input id="promoInput" placeholder="VAULT50-XXXX" style="flex:1;background:#0a0a0a;border:1px solid #333;border-radius:10px;padding:12px;color:#fff;outline:none;font-weight:800;text-transform:uppercase;letter-spacing:1px" maxlength="14">
+    <button id="verifyPromoBtn" disabled style="background:#333;color:#666;border:0;padding:12px 18px;border-radius:10px;font-weight:900;white-space:nowrap">LOCK TARGET FIRST</button>
+  </div>
+
+  <div id="promoStatus" style="font-size:11px;margin-top:10px;color:#666;line-height:1.4">Select a track above, enter your VAULT50 code, discount applies at checkout.</div>
+  <div id="promoPriceHint" style="font-size:10px;margin-top:6px;color:#444;display:none">💡 Only 1 track will be 50% OFF in PayPal - others full price.</div>
+</div>
+
+
 
 <section class="similar-section"><div class="section-head"><h2 id="similarTitle">Similar Tracks</h2></div><div class="similar-wrap"><button class="similar-arrow left" id="similarLeft">‹</button><div id="similarTrack" class="latest-container similar-scroll"></div><button class="similar-arrow right" id="similarRight">›</button></div></section>
 <div class="dt-explore-wrap"><div class="dt-explore-box"><div class="dt-explore-left"><img src="images/logo.png" class="dt-explore-logo"/></div><div class="dt-explore-info"><div class="dt-explore-title">Explore More Tracks</div><div class="dt-explore-sub">Find similar vibes →</div></div><div class="dt-explore-center"><div class="dt-explore-line"></div></div><div class="dt-explore-right"><a href="beats.html" class="dt-explore-btn">Explore</a></div></div></div>

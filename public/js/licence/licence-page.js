@@ -695,157 +695,84 @@ function revealUI(){
   }
 }
 
-// call reveal after everything ready
-// REPLACE your last lines in window load:
-window.addEventListener("load", async () => {
-    const earlyCart = safeParse("dopetone_cart", []);
-    if(earlyCart.length>0){
-      document.body.classList.remove("empty-mode");
-      document.body.classList.add("active-mode");
+// === PRO PROMO LOCKER - SINGLE TARGET - NO PRICE MATH ON PAGE ===
+const PROMO_API_PRO = 'https://emails-api.dopetone701.workers.dev';
+let promoTargetId = null;
+
+function refreshPromoTargets(){
+  const sel = safeGet('promoTargetSelect');
+  const badge = safeGet('promoTargetBadge');
+  const btn = safeGet('verifyPromoBtn');
+  const status = safeGet('promoStatus');
+  const hint = safeGet('promoPriceHint');
+  if(!sel) return;
+  const cart = safeParse("dopetone_cart",[]);
+  const locked = safeParse("dopetone_active_promo", null);
+
+  sel.innerHTML = `<option value="">-- Select target track first --</option>`;
+  cart.forEach(b=>{
+    const o=document.createElement('option');
+    o.value=b.id;
+    o.textContent = locked && String(locked.beat_id)===String(b.id) ? `🔥 ${b.title} (PROMO LOCKED)` : `🎯 ${b.title}`;
+    sel.appendChild(o);
+  });
+
+  if(locked){
+    sel.value = locked.beat_id;
+    promoTargetId = locked.beat_id;
+    if(badge){ badge.textContent=`🔥 ${locked.code} • 1 TRACK`; badge.style.color='#00ff88'; badge.style.borderColor='#00ff8844'; }
+    if(btn){ btn.textContent='LOCKED ✓'; btn.disabled=true; btn.style.background='#00ff88'; btn.style.color='#000'; }
+    if(status){ status.textContent=`✅ ${locked.code} locked on "${cart.find(x=>String(x.id)===String(locked.beat_id))?.title||locked.beat_id}" - 50% at PayPal checkout`; status.style.color='#00ff88'; }
+    if(hint) hint.style.display='block';
+    const input = safeGet('promoInput'); if(input) input.value = locked.code;
+  }
+
+  sel.onchange = () => {
+    const newId = sel.value||null;
+    const oldLocked = safeParse("dopetone_active_promo", null);
+    if(oldLocked && String(newId)!==String(oldLocked.beat_id)){
+      localStorage.removeItem("dopetone_active_promo");
     }
-    setupCheckout();
-    setupPlayer();
-    setupLike();
-    setupShare();
-    setupLicenceSelection();
-    setupAddToCart();
-    updateCartCount();
-    const cart = safeParse("dopetone_cart", []).map(ensureMode);
-    if (!beatId && cart.length > 0) {
-        const b = cart[0];
-        beatId = b.id;
-        activeCartBeat = b;
-        window.currentBeat = b;
-        window.__CURRENT_BEAT__ = b;
-        safeGet("title")&&(safeGet("title").textContent = b.title);
-        safeGet("cover")&&(safeGet("cover").src = b.cover_url || b.cover || "images/logo.png");
-        safeGet("genre")&&(safeGet("genre").textContent = b.genre || "--");
-        safeGet("bpm")&&(safeGet("bpm").textContent = b.bpm || "--");
-        safeGet("type")&&(safeGet("type").textContent = b.type_beat || b.type || "--");
-        safeGet("mood")&&(safeGet("mood").textContent = b.mood || "--");
-        safeGet("key")&&(safeGet("key").textContent = b.key || "--");
-        document.body.classList.add("active-mode");
-        document.body.classList.remove("empty-mode");
-        applyDynamicBG(b.cover_url || b.cover);
-        armGlobalPlayer(b);
-        history.replaceState({}, "", `?id=${b.id}`);
-        renderSimilarTracks([b]);
-        updatePrices(b);
-        applyMonetizationRules(b);
-        loadGlobalLikeCount(b.id);
-    } else if (beatId) {
-        await loadBeat();
-    }
-    checkEmptyState();
-    renderCartBeatRow();
-    updateSelectedBar();
-    updateCheckoutTheme();
-    setTimeout(() => document.querySelector(`[data-id="${beatId}"]`)?.classList.add("active"), 200);
-    setTimeout(initCartScroll, 500);
-    setTimeout(forceTitle, 2000);
-
-    // SUNO CLEAN REVEAL
-    requestAnimationFrame(()=> setTimeout(revealUI, 120));
-});
-
-
-
-// === PROMO ENGINE - D1 SYNC + 50% MATH ===
-const PROMO_API = 'https://emails-api.dopetone701.workers.dev';
-let activePromo = null;
-
-async function verifyPromoCode(){
-  const input = document.getElementById('promoInput');
-  const btn = document.getElementById('verifyPromoBtn');
-  const status = document.getElementById('promoStatus');
-  let code = (input.value || localStorage.getItem('dopetone_active_promo') || '').trim().toUpperCase();
-  if(!code){ status.textContent='Enter code e.g. VAULT50-V4OW'; status.style.color='#ffaa00'; return; }
-  
-  btn.textContent='CHECKING...'; btn.disabled=true;
-  status.textContent='Verifying with D1...'; status.style.color='#888';
-
-  try{
-    const res = await fetch(`${PROMO_API}/api/promo/validate`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({code})
-    });
-    const data = await res.json();
-
-    if(!data.valid){
-      status.style.color='#ff4444';
-      status.textContent=`❌ ${data.error} (${code})`;
-      activePromo=null;
-      localStorage.removeItem('dopetone_active_promo');
-      // Reset prices to original
-      document.querySelectorAll('.licence-card .pay-btn').forEach(b=>{
-        if(b.dataset.basePrice){ b.dataset.price = b.dataset.basePrice; }
-      });
-      updatePrices(window.currentBeat);
-      btn.textContent='VERIFY'; btn.disabled=false;
+    promoTargetId = newId;
+    if(!promoTargetId){
+      if(badge){ badge.textContent='NO TARGET'; badge.style.color='#888'; }
+      if(btn){ btn.disabled=true; btn.textContent='LOCK TARGET FIRST'; btn.style.background='#333'; btn.style.color='#666'; }
+      if(status){ status.textContent='Select a track above, enter your VAULT50 code, discount applies at checkout.'; status.style.color='#666'; }
+      if(hint) hint.style.display='none';
       return;
     }
-
-    activePromo = {code, discount: data.discount, expires_at: data.expires_at};
-    localStorage.setItem('dopetone_active_promo', code);
-    const exp = new Date(data.expires_at);
-    status.style.color='#00ff88';
-    status.textContent=`✅ ${code} VERIFIED - ${data.discount}% OFF • Expires ${exp.toLocaleDateString()} • ONE USE`;
-    btn.textContent=`${data.discount}% ARMED ✓`;
-    btn.style.background='#00ff88';
-    
-    // APPLY 50% IN REAL TIME - DO THE MATH
-    applyPromoMath(data.discount);
-
-  }catch(e){
-    status.style.color='#ff4444';
-    status.textContent='Network error: '+e.message;
-  }
-  btn.disabled=false;
-}
-
-function applyPromoMath(discount){
-  const mult = (100-discount)/100; // 0.5
-  document.querySelectorAll('.licence-card').forEach(card=>{
-    const btn = card.querySelector('.pay-btn');
-    const oldEl = card.querySelector('.old');
-    const newEl = card.querySelector('.new');
-    if(!btn) return;
-    if(!btn.dataset.basePrice) btn.dataset.basePrice = btn.dataset.price;
-    const base = parseFloat(btn.dataset.basePrice);
-    const discounted = base * mult;
-    btn.dataset.price = discounted.toFixed(2);
-    if(oldEl) { oldEl.textContent = `$${base.toFixed(2)}`; oldEl.style.textDecoration='line-through'; oldEl.style.opacity='0.5'; }
-    if(newEl) { newEl.textContent = `$${discounted.toFixed(2)}`; newEl.style.color='#00ff88'; }
-  });
-  
-  // Update selected bar total with discount
-  let total=0, licences = safeParse("dopetone_licences",{});
-  Object.values(licences).forEach(l=>{ total += parseFloat(l.price)*mult; });
-  const totalEl = document.getElementById('totalPrice');
-  if(totalEl && total>0) totalEl.textContent = `$${total.toFixed(2)}`;
-}
-
-// Hook
-document.addEventListener('DOMContentLoaded', ()=>{
-  document.getElementById('verifyPromoBtn')?.addEventListener('click', verifyPromoCode);
-  document.getElementById('promoInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') verifyPromoCode(); });
-  // Auto verify if promo in URL
-  setTimeout(()=>{
-    const p = new URLSearchParams(location.search).get('promo') || localStorage.getItem('dopetone_active_promo');
-    if(p){
-      const inp = document.getElementById('promoInput');
-      if(inp){ inp.value=p.toUpperCase(); verifyPromoCode(); }
-    }
-  }, 1200);
-});
-
-// Also mark promo as used after successful Stripe checkout
-const origCheckout = window.createStripeCheckout;
-if(origCheckout){
-  // You call this in checkout-paypal.js after payment success
-  window.markPromoUsed = async (code)=>{
-    try{
-      await fetch(`${PROMO_API}/api/promo/use`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})});
-    }catch{}
+    const beat = cart.find(x=>String(x.id)===String(promoTargetId));
+    if(badge){ badge.textContent=`🎯 ${beat?.title?.slice(0,22)||promoTargetId}`; badge.style.color='#00ff88'; }
+    if(btn){ btn.disabled=false; btn.textContent='VERIFY & LOCK 50%'; btn.style.background='#00ff88'; btn.style.color='#000'; btn.style.cursor='pointer'; }
+    if(status){ status.textContent=`Target: ${beat?.title} - enter code`; status.style.color='#00ff88'; }
+    if(hint) hint.style.display='block';
   };
 }
+
+async function verifyPromoCode(){
+  const input = safeGet('promoInput');
+  const btn = safeGet('verifyPromoBtn');
+  const status = safeGet('promoStatus');
+  if(!input||!btn||!status) return;
+  const code=(input.value||'').trim().toUpperCase();
+  if(!promoTargetId){ status.textContent='❌ Select target track first'; status.style.color='#ff4444'; return; }
+  if(!code){ status.textContent='Enter code: VAULT50-XXXX'; status.style.color='#ffaa00'; return; }
+  btn.textContent='LOCKING...'; btn.disabled=true;
+  status.textContent='Verifying in D1...'; status.style.color='#888';
+  try{
+    const res=await fetch(`${PROMO_API_PRO}/api/promo/lock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code, beat_id: promoTargetId})});
+    const data=await res.json();
+    if(!data.valid){ status.textContent=`❌ ${data.error}`; status.style.color='#ff4444'; btn.textContent='VERIFY & LOCK 50%'; btn.disabled=false; return; }
+    localStorage.setItem('dopetone_active_promo', JSON.stringify({code:data.code, beat_id: promoTargetId, discount:data.discount}));
+    status.textContent=`✅ ${data.code} locked - 50% OFF at checkout on 1 track`; status.style.color='#00ff88';
+    btn.textContent='LOCKED ✓'; btn.style.background='#00ff88'; btn.style.color='#000';
+    refreshPromoTargets();
+  }catch(e){ status.textContent=`❌ ${e.message}`; status.style.color='#ff4444'; btn.textContent='VERIFY & LOCK 50%'; btn.disabled=false; }
+}
+
+document.getElementById('verifyPromoBtn')?.addEventListener('click', verifyPromoCode);
+document.getElementById('promoInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') verifyPromoCode(); });
+setTimeout(refreshPromoTargets, 800);
+
+window.refreshPromoTargets = refreshPromoTargets;
+window.verifyPromoCode = verifyPromoCode;

@@ -1,4 +1,4 @@
-// checkout-paypal.js - PAYPAL PRO MAX - 50% PROMO ARMED - D1 SAFE
+// checkout-paypal.js - FIXED - CARDS BACK + 1 TRACK PROMO
 const PAYPAL_WORKER_URL = 'https://pay-pal-api.dopetone701.workers.dev';
 const PROMO_API = 'https://emails-api.dopetone701.workers.dev';
 
@@ -48,10 +48,12 @@ export async function createStripeCheckout(e){
   let beatsToCheckout = cart.filter(b => licences[String(b.id)] || licences[b.id]);
   if(beatsToCheckout.length===0){ proToast("Select a licence first", "error"); return; }
 
-  // === CHECK PROMO FROM LOCAL STORAGE / INPUT ===
-  let activePromoCode = localStorage.getItem('dopetone_active_promo') || document.getElementById('promoInput')?.value?.toUpperCase() || '';
+  // === PRO FIX: READ TARGET FROM D1 LOCK ===
+  let activePromoObj = safeParse('dopetone_active_promo', null);
+  let activePromoCode = activePromoObj?.code || (typeof localStorage.getItem('dopetone_active_promo')==='string' ? localStorage.getItem('dopetone_active_promo') : '') || document.getElementById('promoInput')?.value?.toUpperCase() || '';
   let discountMult = 1;
   let promoValid = null;
+  let targetBeatId = activePromoObj?.beat_id || null;
 
   if(activePromoCode){
     try{
@@ -62,8 +64,9 @@ export async function createStripeCheckout(e){
       const d = await r.json();
       if(d.valid){
         promoValid = d;
-        discountMult = (100 - d.discount)/100; // 0.5 for 50%
-        proToast(`🔥 ${activePromoCode} - ${d.discount}% OFF applied`, "ok");
+        discountMult = (100 - d.discount)/100;
+        targetBeatId = d.locked_beat_id || targetBeatId || d.beat_id || null;
+        proToast(`🔥 ${activePromoCode} - ${d.discount}% OFF on 1 track`, "ok");
       } else {
         proToast(`Promo ${activePromoCode} invalid: ${d.error}`, "error");
         activePromoCode=''; localStorage.removeItem('dopetone_active_promo');
@@ -86,7 +89,6 @@ export async function createStripeCheckout(e){
     btn.innerHTML = `Redirecting to PayPal <span class="dt-gear">⚙️</span>`;
   }
 
-  // Recalculate with 50% math if promo valid
   let licencesToSend = {};
   beatsToCheckout.forEach(b=>{
     const lic = licences[String(b.id)] || licences[b.id];
@@ -97,13 +99,13 @@ export async function createStripeCheckout(e){
     if(lic.name === 'Exclusive') finalPrice = calcExclusive(base);
     if(lic.name === 'Basic' && !lic.price) finalPrice = base;
     if(lic.name === 'FREE' || lic.name === 'Free' || finalPrice<=0) return;
-    
-    // APPLY 50% DISCOUNT REAL TIME
-    if(promoValid){
+   
+    const isTarget = targetBeatId && String(b.id) === String(targetBeatId);
+    if(isTarget && promoValid){
       finalPrice = Number((finalPrice * discountMult).toFixed(2));
     }
 
-    licencesToSend[b.id] = { name: lic.name, price: finalPrice, title: b.title || b.beat_title || `Beat ${b.id}`, original_price: lic.price };
+    licencesToSend[b.id] = { name: lic.name, price: finalPrice, title: b.title || b.beat_title || `Beat ${b.id}`, original_price: lic.price, is_promo_target: isTarget };
   });
 
   if(Object.keys(licencesToSend).length===0){
@@ -117,6 +119,7 @@ export async function createStripeCheckout(e){
     beats: beatsToCheckout,
     licences: licencesToSend,
     promo_code: activePromoCode || null,
+    promo_beat_id: targetBeatId,
     discount_applied: promoValid?.discount || 0,
     user_id: localStorage.getItem("dopetone_user_id") || "anonymous"
   };
@@ -158,6 +161,7 @@ export async function createStripeCheckout(e){
         name: customerName,
         customer_name: customerName,
         promo_code: activePromoCode || null,
+        promo_beat_id: targetBeatId,
         discount: promoValid?.discount || 0
       }),
       signal: controller.signal
@@ -169,10 +173,7 @@ export async function createStripeCheckout(e){
 
     if(data.url){
       proToast("Redirecting to PayPal...", "ok");
-      // Mark promo as used AFTER redirect will happen via success page, but save for webhook
-      if(activePromoCode){
-        localStorage.setItem('dopetone_pending_promo_use', activePromoCode);
-      }
+      if(activePromoCode){ localStorage.setItem('dopetone_pending_promo_use', activePromoCode); }
       setTimeout(()=>{ window.location.href = data.url; }, 350);
       return;
     } else throw new Error(data.error || 'No checkout URL');
