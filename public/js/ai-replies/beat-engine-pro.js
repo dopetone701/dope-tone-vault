@@ -1,4 +1,4 @@
-// beat-engine-pro.js - V7.1.1 FORTH LEARNING - TRAP BUG FIXED + STRICT GENRE LOCK
+// beat-engine-pro.js - V6 SUPER - STRICT GENRE LOCK + NO WRONG GENRE EVER + TASTE AWARE RANKING
 const AI_API = "https://ai-api.dopetone701.workers.dev";
 import { getMemoryPro, getTasteVectorPro, getSalesReadinessPro } from './conversation-memory-pro.js';
 
@@ -6,17 +6,16 @@ let CATALOG_CACHE = null;
 let CATALOG_CACHE_TIME = 0;
 
 async function getCatalogCache(){
-  if(CATALOG_CACHE && Date.now() - CATALOG_CACHE_TIME < 5*60*1000) return CATALOG_CACHE;
+  if(CATALOG_CACHE && Date.now() - CATALOG_CACHE_TIME < 2*60*1000) return CATALOG_CACHE;
   try{
-    let r = await fetch(`${AI_API}/api/recent?limit=100&t=${Date.now()}`, {cache:'no-store'});
+    let r = await fetch(`${AI_API}/api/recent?limit=150&t=${Date.now()}`, {cache:'no-store'});
     if(r.ok){
       let d = await r.json();
       let beats = d.beats || d.top3 || [];
       if(beats.length){
         CATALOG_CACHE = beats;
         CATALOG_CACHE_TIME = Date.now();
-        // OVERWRITE polluted cache
-        localStorage.setItem('dt_beats_cache', JSON.stringify(beats.slice(0,100)));
+        localStorage.setItem('dt_beats_cache', JSON.stringify(beats.slice(0,150)));
         return beats;
       }
     }
@@ -26,163 +25,192 @@ async function getCatalogCache(){
       CATALOG_CACHE_TIME = Date.now();
       return beats;
     }
-  }catch(e){ console.log('catalog cache err', e); }
+  }catch(e){}
   return CATALOG_CACHE || [];
 }
 
 function normalizeGenre(g){
   if(!g) return '';
-  return g.toLowerCase().trim().replace(/🔥|⚡|💙|🌍|🪘/g,'').trim();
+  return g.toLowerCase().trim().replace(/🔥|⚡|💙|🌍|🪘|✨|👀/g,'').trim();
 }
 
-function rankBeatsV7(beats, context){
-  const { taste, sales_score, entities, memory } = context;
+function rankBeatsSuper(beats, context){
+  const { taste, sales_score, entities } = context;
   return beats.map(beat => {
     let score = 0;
     let reasons = [];
     let plays = beat.play_count || beat.plays || 0;
-    score += Math.min(30, plays / 10); // FIX: was /100, now /10 so 100 plays = 10 pts, Temperature 100 should win
+    score += Math.min(30, plays / 8); // plays matter
 
+    // TASTE BOOST - only if no explicit genre conflict
     if(taste.topGenre && (beat.genre||'').toLowerCase().includes(taste.topGenre)){
-      // ONLY boost taste if user didn't explicitly ask different genre
-      if(!entities.genre || (beat.genre||'').toLowerCase().includes(entities.genre.toLowerCase())){
-        score += 25; reasons.push(`taste:${taste.topGenre}`);
+      if(!entities.genre || (beat.genre||'').toLowerCase().includes(normalizeGenre(entities.genre))){
+        score += 20; reasons.push(`taste:${taste.topGenre}`);
       }
     }
-    if(entities.genre && (beat.genre||'').toLowerCase().includes(normalizeGenre(entities.genre))){
-      score += 50; reasons.push('exact_genre'); // HUGE boost for exact
-    } else if(entities.genre && !(beat.genre||'').toLowerCase().includes(normalizeGenre(entities.genre))){
-      score -= 100; reasons.push('wrong_genre'); // KILL wrong genre
+
+    // EXACT GENRE - huge boost, WRONG GENRE = kill
+    if(entities.genre){
+      let req = normalizeGenre(entities.genre);
+      let beatGenre = (beat.genre||'').toLowerCase();
+      if(beatGenre.includes(req)){
+        score += 100; reasons.push('exact_genre');
+      } else {
+        score -= 500; reasons.push('wrong_genre_KILL'); // V6: -500 not -100, so wrong genre NEVER shows
+      }
     }
-    if(entities.mood && (beat.mood||'').toLowerCase().includes(entities.mood)){ score += 20; }
+
+    if(entities.mood && (beat.mood||'').toLowerCase().includes(entities.mood)){ score += 25; reasons.push('mood'); }
+    if(entities.emotional_context && (beat.mood||'').toLowerCase().includes(entities.emotional_context)){ score += 15; }
     if(entities.q){
       let qWords = entities.q.toLowerCase().split(/\s+/);
-      let beatText = (beat.title+' '+beat.genre).toLowerCase();
+      let beatText = (beat.title+' '+beat.genre+' '+(beat.tags||'')).toLowerCase();
       let qMatch = qWords.filter(w=> beatText.includes(w)).length;
-      score += qMatch * 10;
+      score += qMatch * 15;
     }
-    if(memory.sales?.viewed_beats?.some(v=> String(v.id) === String(beat.id||beat.title))){
-      score -= 5;
+    if(entities.artist_type){
+      let at = entities.artist_type.toLowerCase();
+      let beatText = (beat.title+' '+(beat.tags||'')).toLowerCase();
+      if(beatText.includes(at)) { score += 30; reasons.push(`artist:${at}`); }
     }
+    if(entities.bpm && beat.bpm){
+      let diff = Math.abs(parseInt(beat.bpm) - parseInt(entities.bpm));
+      if(diff <= 3) score += 20;
+      else if(diff <= 10) score += 10;
+      else if(diff > 20) score -= 10;
+    }
+    // Avoid repeats
+    if(context.memory.sales?.viewed_beats?.some(v=> String(v.id) === String(beat.id))){
+      score -= 15; reasons.push('already_seen');
+    }
+
     return { ...beat, _rank_score: score, _rank_reasons: reasons };
-  }).sort((a,b)=> b._rank_score - a._rank_score);
+  })
+  .filter(b=> b._rank_score > -100) // Remove killed wrong genres
+  .sort((a,b)=> b._rank_score - a._rank_score);
 }
 
-async function callRecommend(params, context){
+async function callRecommendSuper(params, context){
   try{
     let qs = new URLSearchParams();
     Object.entries(params).forEach(([k,v])=>{
-      if(v!=null && v!=='' && k!=='page' && k!=='intent' && k!=='bpm_range' && k!=='artist_type' && k!=='type') qs.set(k,v);
+      if(v!=null && v!=='' && !['page','intent','bpm_range','type'].includes(k)) qs.set(k,v);
       if(k==='bpm_range' && v) { qs.set('bpm_min', v.min); qs.set('bpm_max', v.max); }
     });
-    qs.set('limit', params.limit || 10);
+    qs.set('limit', params.limit || 20); // fetch more for ranking
     qs.set('offset', params.offset || 0);
     qs.set('t', Date.now());
     if(params.intent) qs.set('intent', params.intent);
+    qs.set('super', 'true'); // Tell worker to use V6 logic
+    
     let res = await fetch(`${AI_API}/api/recommend?${qs.toString()}`, {cache:'no-store'});
     if(res.ok){
       let data = await res.json();
       let beats = data.top3 || data.beats || [];
-      // CLIENT GENRE GUARD
+      
+      // CLIENT STRICT GUARD - second layer
       if(params.genre && params.genre!=='recent'){
         let g = normalizeGenre(params.genre);
         let filtered = beats.filter(b=> (b.genre||'').toLowerCase().includes(g));
+        // If filtered has results, use filtered, else keep empty to trigger fallback (don't show wrong genre)
         if(filtered.length) beats = filtered;
+        else if(beats.length && !data.fallback) beats = []; // Force empty if wrong genre returned
       }
+      
       if(beats.length && context){
-        beats = rankBeatsV7(beats, context);
+        beats = rankBeatsSuper(beats, context);
       }
       return { beats: beats.slice(0, params.limit||3), fallback: !!data.fallback, level: data.level||'exact', all: beats };
     }
-  }catch(e){ console.log('rec err',e); }
+  }catch(e){ console.log('super rec err',e); }
   return { beats:[], fallback:true, level:'error' };
 }
 
-export async function fetchBeatsPro({genre, mood, bpm, key, q, type, price_max, page=0, limit=3, intent='', artist_type, bpm_range}){
+export async function fetchBeatsPro({genre, mood, bpm, key, q, price_max, page=0, limit=3, intent='', artist_type, bpm_range, emotional_context}){
   let offset = page*limit;
   const memory = getMemoryPro();
   const taste = getTasteVectorPro();
   const sales_score = getSalesReadinessPro();
-  
-  // FIX 1: NEVER auto-inject genre when user says ok/hey/greet
-  let isGreet = ['greet','acknowledge','unknown',''].includes(intent);
+ 
+  let isGreet = ['greet','acknowledge','unclear',''].includes(intent);
   let explicitGenre = !!genre;
-  
-  // FIX 2: Only inject taste if NO explicit genre AND not greet
+ 
+  // Taste injection - only if no explicit genre and not greet
   if(!genre && taste.topGenre && !isGreet && intent!=='recent'){
-    // Don't inject if last memory was different genre
-    if(!memory.genre || memory.genre === taste.topGenre){
+    if(!memory.taste?.genres || memory.taste.genres[taste.topGenre]){
       genre = taste.topGenre;
     }
   }
 
-  const context = { taste, sales_score, entities: {genre, mood, bpm, key, q, price_max, artist_type, bpm_range}, memory };
+  const context = { taste, sales_score, entities: {genre, mood, bpm, key, q, price_max, artist_type, bpm_range, emotional_context}, memory };
 
   if(intent==='recent'){
     try{
-      let r = await fetch(`${AI_API}/api/recent?limit=${limit}&offset=${offset}&t=${Date.now()}`, {cache:'no-store'});
+      let r = await fetch(`${AI_API}/api/recent?limit=${limit}&offset=${offset}&super=true&t=${Date.now()}`, {cache:'no-store'});
       if(r.ok){
         let d = await r.json();
         let beats = d.top3||d.beats||[];
-        beats = rankBeatsV7(beats, context);
-        if(beats.length) return {beats: beats.slice(0,limit), fallback:false, level:'recent-v7.1.1'};
+        beats = rankBeatsSuper(beats, context);
+        if(beats.length) return {beats: beats.slice(0,limit), fallback:false, level:'recent-v6-super'};
       }
     }catch{}
   }
 
-  if(q || genre || artist_type){
+  // Smart search first - uses vectorize on worker
+  if(q || artist_type || emotional_context){
     try{
-      let searchQ = q || artist_type || genre || '';
-      let s = await fetch(`${AI_API}/api/smart-search?q=${encodeURIComponent(searchQ)}&t=${Date.now()}`, {cache:'no-store'});
+      let searchQ = q || artist_type || emotional_context || genre || '';
+      let s = await fetch(`${AI_API}/api/smart-search?q=${encodeURIComponent(searchQ)}&genre=${genre||''}&super=true&t=${Date.now()}`, {cache:'no-store'});
       if(s.ok){
         let sd = await s.json();
         if(sd.found && sd.beats?.length){
-          // STRICT FILTER
           if(genre){
             let g = normalizeGenre(genre);
             sd.beats = sd.beats.filter(b=> (b.genre||'').toLowerCase().includes(g));
           }
           if(sd.beats.length){
-            let ranked = rankBeatsV7(sd.beats, context);
-            return {beats: ranked.slice(0,limit), fallback:false, level:'smart-'+sd.source+'-v7.1.1', genre:sd.genre};
+            let ranked = rankBeatsSuper(sd.beats, context);
+            if(ranked.length) return {beats: ranked.slice(0,limit), fallback:false, level:'smart-vector-'+sd.source, genre:sd.genre};
           }
         }
       }
     }catch{}
   }
 
+  // Super chain - genre strict first
   let chains = [
-    {genre, mood, bpm, key, q, price_max, artist_type, bpm_range},
+    {genre, mood, bpm, bpm_range, key, q, artist_type, price_max},
     {genre, mood, artist_type},
-    {genre, mood, q},
     {genre, mood},
+    {genre, bpm},
     {genre},
     {artist_type},
     {q},
-    {}
+    {emotional_context},
+    {} // last resort top plays
   ];
 
   for(let c of chains){
     let hasValues = Object.values(c).some(v=> v!=null && v!=='' && (typeof v!=='object' || Object.keys(v).length));
-    if(!hasValues){
-      let r = await callRecommend({limit:10, offset, intent}, context);
-      if(r.beats.length) return {beats: r.beats.slice(0,limit), fallback: r.fallback, level:'top-ranked-v7.1.1'};
-      continue;
+    if(!hasValues && c !== chains[chains.length-1]) continue; // skip empty unless last
+    
+    let r = await callRecommendSuper({...c, limit: limit*3, offset, intent}, context);
+    if(r.beats.length && r.beats.some(b=> b._rank_score > -50)) {
+      return {beats: r.beats.slice(0,limit), fallback:r.fallback, level:'chain-v6-super-'+r.level};
     }
-    let r = await callRecommend({...c, limit:10, offset, intent}, context);
-    if(r.beats.length && r.beats.some(b=> b._rank_score > -50)) return {beats: r.beats.slice(0,limit), fallback:r.fallback, level:'chain-v7.1.1'};
   }
 
+  // Local cache fallback
   try{
     let all = await getCatalogCache();
     if(all.length){
-      let ranked = rankBeatsV7(all, context);
+      let ranked = rankBeatsSuper(all, context);
       let filtered = ranked.filter(b=> b._rank_score > -50).slice(offset, offset+limit);
-      if(filtered.length) return { beats:filtered, fallback:true, level:'local-ranked-v7.1.1' };
+      if(filtered.length) return { beats:filtered, fallback:true, level:'local-ranked-v6-super' };
     }
   }catch{}
 
-  return { beats:[], fallback:true, level:'empty-v7.1.1' };
+  return { beats:[], fallback:true, level:'empty-v6-super' };
 }
 
 export function getBeatTruth(beatIdOrTitle){
@@ -190,4 +218,4 @@ export function getBeatTruth(beatIdOrTitle){
   return CATALOG_CACHE.find(b=> (b.id===beatIdOrTitle || b.title===beatIdOrTitle || b.title?.toLowerCase()===beatIdOrTitle?.toLowerCase())) || null;
 }
 
-if(typeof window!=='undefined'){ window.DopeBeatEnginePro = { fetchBeatsPro, getBeatTruth, rankBeatsV7 }; }
+if(typeof window!=='undefined'){ window.DopeBeatEnginePro = { fetchBeatsPro, getBeatTruth, rankBeatsSuper }; }
